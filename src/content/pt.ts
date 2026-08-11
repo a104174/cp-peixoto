@@ -133,12 +133,22 @@ export const pt = {
     ],
   },
   trust: {
-    headingLines: ["TRABALHO CUIDADO.", "EXECUÇÃO PROFISSIONAL.", "RESULTADOS DURADOUROS."],
+    label: "SOBRE NÓS",
+    headingLines: [
+      "TRABALHO CUIDADO.",
+      "EXECUÇÃO PROFISSIONAL.",
+      "RESULTADOS DURADOUROS.",
+    ],
     description: [
       "Experiência prática de vários anos na aplicação profissional de revestimentos e sistemas de impermeabilização com resinas líquidas.",
       "Cada projeto começa com uma avaliação cuidada da superfície e com a escolha do sistema mais adequado.",
     ],
-    benefits: ["Aconselhamento personalizado", "Execução cuidada", "Materiais de qualidade", "Soluções personalizadas"],
+    benefits: [
+      "ACONSELHAMENTO PERSONALIZADO",
+      "EXECUÇÃO CUIDADA",
+      "MATERIAIS DE QUALIDADE",
+      "SOLUÇÕES PERSONALIZADAS",
+    ],
   },
   contact: {
     heading: "O SEU PROJETO. A NOSSA SOLUÇÃO.",

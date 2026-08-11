@@ -99,6 +99,7 @@ export interface SiteDictionary {
     ];
   };
   trust: {
+    label: string;
     headingLines: readonly [string, string, string];
     description: readonly [string, string];
     benefits: readonly string[];

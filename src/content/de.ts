@@ -138,12 +138,22 @@ export const de = {
     ],
   },
   trust: {
-    headingLines: ["SAUBERE ARBEIT.", "PROFESSIONELLE AUSFÜHRUNG.", "LANGLEBIGE ERGEBNISSE."],
+    label: "ÜBER UNS",
+    headingLines: [
+      "SAUBERE ARBEIT.",
+      "PROFESSIONELLE AUSFÜHRUNG.",
+      "LANGLEBIGE ERGEBNISSE.",
+    ],
     description: [
       "Langjährige praktische Erfahrung mit professionellen Beschichtungs- und Flüssigkunststoffsystemen.",
       "Jedes Projekt beginnt mit einer sorgfältigen Beurteilung des Untergrunds und der Auswahl des passenden Systems.",
     ],
-    benefits: ["Persönliche Beratung", "Saubere Ausführung", "Hochwertige Materialien", "Individuelle Lösungen"],
+    benefits: [
+      "PERSÖNLICHE BERATUNG",
+      "SAUBERE AUSFÜHRUNG",
+      "HOCHWERTIGE MATERIALIEN",
+      "INDIVIDUELLE LÖSUNGEN",
+    ],
   },
   contact: {
     heading: "IHR PROJEKT. UNSERE LÖSUNG.",
