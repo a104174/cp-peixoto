@@ -15,6 +15,7 @@ export function LandingPage({ locale }: LandingPageProps) {
     <>
       <SiteHeader
         accessibility={dictionary.accessibility}
+        brandSubtitle={dictionary.hero.eyebrow}
         header={dictionary.header}
         locale={locale}
       />

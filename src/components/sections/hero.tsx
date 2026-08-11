@@ -20,7 +20,7 @@ export function Hero({ content, locale }: HeroProps) {
             alt={heroImage.alt[locale]}
             fill
             priority
-            sizes="(max-width: 68.75rem) 100vw, 58vw"
+            sizes="100vw"
             className="hero-image"
           />
         ) : (

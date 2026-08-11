@@ -49,8 +49,13 @@ export const siteConfig: SiteConfig = {
     logoSrc: "/brand/cp-peixoto-logo.png",
     logoAlt: "CP Peixoto",
   },
-  // Replace this with a local /images/hero asset when the final image exists.
-  heroImage: null,
+  heroImage: {
+    src: "/images/hero.png",
+    alt: {
+      "de-CH": "Beschichtete Böden in einem Wohnraum und einer Industriehalle",
+      "pt-PT": "Pavimentos revestidos numa habitação e num espaço industrial",
+    },
+  },
 };
 
 export function getAbsoluteUrl(path: string): string {

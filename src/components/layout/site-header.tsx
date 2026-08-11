@@ -10,6 +10,7 @@ import type { Locale, SiteDictionary } from "@/content/types";
 
 interface SiteHeaderProps {
   accessibility: SiteDictionary["accessibility"];
+  brandSubtitle: string;
   header: SiteDictionary["header"];
   locale: Locale;
 }
@@ -40,6 +41,7 @@ function preserveCurrentSection(
 
 export function SiteHeader({
   accessibility,
+  brandSubtitle,
   header,
   locale,
 }: SiteHeaderProps) {
@@ -74,8 +76,9 @@ export function SiteHeader({
             height={58}
             priority
           />
-          <span className="brand-wordmark" aria-hidden="true">
-            CP <strong>Peixoto</strong>
+          <span className="brand-lockup" aria-hidden="true">
+            <strong className="brand-name">Peixoto</strong>
+            <span className="brand-tagline">{brandSubtitle}</span>
           </span>
         </a>
 
