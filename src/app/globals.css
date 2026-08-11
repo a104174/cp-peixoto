@@ -364,7 +364,7 @@ svg {
   z-index: -2;
   inset: 0;
   background:
-    linear-gradient(90deg, rgb(6 7 7 / 94%), rgb(6 7 7 / 86%) 25%, rgb(6 7 7 / 64%) 43%, rgb(6 7 7 / 31%) 62%, rgb(6 7 7 / 8%) 82%),
+    linear-gradient(90deg, rgb(6 7 7 / 86%), rgb(6 7 7 / 72%) 25%, rgb(6 7 7 / 48%) 43%, rgb(6 7 7 / 22%) 62%, rgb(6 7 7 / 6%) 82%),
     linear-gradient(180deg, rgb(5 6 6 / 46%), rgb(5 6 6 / 5%) 38%, rgb(5 6 6 / 24%) 78%, rgb(5 6 6 / 58%));
 }
 
@@ -402,7 +402,7 @@ svg {
   max-width: none;
   margin: 0;
   color: var(--color-foreground);
-  font-family: var(--font-heading), "Arial Narrow", sans-serif;
+  font-family: var(--font-hero-heading), Arial, sans-serif;
   font-size: clamp(3.8rem, 5.35vw, 5.35rem);
   font-weight: 700;
   letter-spacing: -0.025em;
@@ -434,27 +434,6 @@ svg {
   stroke-linecap: square;
   stroke-width: 1.5;
 }
-
-.hero-location {
-  display: flex;
-  align-self: end;
-  justify-self: end;
-  align-items: center;
-  gap: 0.55rem;
-  margin: 0;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid rgb(247 244 236 / 12%);
-  background: rgb(7 8 8 / 34%);
-  color: rgb(247 244 236 / 72%);
-  font-size: 0.63rem;
-  font-weight: 700;
-  letter-spacing: 0.105em;
-  line-height: 1.4;
-  text-transform: uppercase;
-  backdrop-filter: blur(8px);
-}
-
-.hero-location span[aria-hidden="true"] { color: var(--color-accent); }
 
 .future-sections {
   background: var(--color-background-light);
@@ -525,7 +504,7 @@ svg {
   .hero { min-height: max(43rem, 100svh); }
   .hero-overlay {
     background:
-      linear-gradient(90deg, rgb(6 7 7 / 92%), rgb(6 7 7 / 78%) 38%, rgb(6 7 7 / 43%) 70%, rgb(6 7 7 / 14%)),
+      linear-gradient(90deg, rgb(6 7 7 / 82%), rgb(6 7 7 / 68%) 38%, rgb(6 7 7 / 36%) 70%, rgb(6 7 7 / 10%)),
       linear-gradient(180deg, rgb(5 6 6 / 46%), rgb(5 6 6 / 8%) 44%, rgb(5 6 6 / 48%));
   }
 
@@ -542,7 +521,6 @@ svg {
 
   .hero-copy { max-width: 45rem; }
   .hero-title { font-size: clamp(3.8rem, 8.2vw, 5rem); }
-  .hero-location { align-self: flex-end; margin-top: auto; }
 }
 
 @media (max-width: 40rem) {
@@ -561,7 +539,7 @@ svg {
   .hero-image { object-position: 50% center; }
   .hero-overlay {
     background:
-      linear-gradient(90deg, rgb(6 7 7 / 89%), rgb(6 7 7 / 72%) 68%, rgb(6 7 7 / 48%)),
+      linear-gradient(90deg, rgb(6 7 7 / 80%), rgb(6 7 7 / 62%) 68%, rgb(6 7 7 / 38%)),
       linear-gradient(180deg, rgb(5 6 6 / 54%), rgb(5 6 6 / 18%) 42%, rgb(5 6 6 / 66%));
   }
 
@@ -579,7 +557,6 @@ svg {
   .hero-title span { white-space: normal; }
   .hero-description { max-width: 31rem; margin-top: 1.3rem; font-size: 0.94rem; line-height: 1.64; }
   .hero-cta { width: min(100%, 19rem); min-width: 0; margin-top: 1.55rem; }
-  .hero-location { align-self: flex-start; flex-wrap: wrap; gap: 0.42rem; margin-top: auto; padding: 0.45rem 0.6rem; font-size: 0.58rem; letter-spacing: 0.08em; }
 }
 
 @media (max-width: 22rem) {

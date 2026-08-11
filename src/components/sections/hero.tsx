@@ -58,12 +58,6 @@ export function Hero({ content, locale }: HeroProps) {
             </svg>
           </a>
         </div>
-
-        <p className="hero-location">
-          <span>{siteConfig.region[locale]}</span>
-          <span aria-hidden="true">·</span>
-          <span>{siteConfig.serviceArea[locale]}</span>
-        </p>
       </div>
     </section>
   );
