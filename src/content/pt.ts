@@ -200,7 +200,6 @@ export const pt = {
     },
   },
   footer: {
-    descriptor: "REVESTIMENTOS · IMPERMEABILIZAÇÕES · PAVIMENTOS DECORATIVOS",
-    region: "Aargau e região",
+    descriptor: "REVESTIMENTOS & IMPERMEABILIZAÇÕES",
   },
 } satisfies SiteDictionary;

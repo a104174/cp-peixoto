@@ -140,6 +140,5 @@ export interface SiteDictionary {
   };
   footer: {
     descriptor: string;
-    region: string;
   };
 }

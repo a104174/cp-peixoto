@@ -206,7 +206,6 @@ export const de = {
     },
   },
   footer: {
-    descriptor: "BODENBESCHICHTUNGEN · ABDICHTUNGEN · DEKORATIVE BÖDEN",
-    region: "Aargau & Umgebung",
+    descriptor: "BODENBESCHICHTUNGEN & ABDICHTUNGEN",
   },
 } satisfies SiteDictionary;
