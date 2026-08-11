@@ -74,7 +74,6 @@ export function SiteHeader({
             alt={siteConfig.brand.logoAlt}
             width={58}
             height={58}
-            priority
           />
           <span className="brand-lockup" aria-hidden="true">
             <strong className="brand-name">Peixoto</strong>

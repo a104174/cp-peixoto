@@ -1,11 +1,5 @@
 import type { Locale } from "@/content/types";
 
-export interface SocialLinks {
-  instagram?: string;
-  facebook?: string;
-  linkedin?: string;
-}
-
 export interface SiteConfig {
   companyName: string;
   siteName: string;
@@ -15,18 +9,22 @@ export interface SiteConfig {
   address: null;
   region: Record<Locale, string>;
   serviceArea: Record<Locale, string>;
-  socialLinks: SocialLinks;
   brand: { logoSrc: string; logoAlt: string };
-  heroImage: { src: string; alt: Record<Locale, string> } | null;
+  heroImage: { src: string; alt: Record<Locale, string> };
 }
 
 const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+const localSiteUrl = "http://localhost:3000";
+
+if (process.env.NETLIFY && !configuredSiteUrl) {
+  throw new Error("NEXT_PUBLIC_SITE_URL must be configured for Netlify builds");
+}
 
 export const siteConfig: SiteConfig = {
   companyName: "CP Peixoto",
   siteName: "CP Peixoto",
-  // Reserved example domain until NEXT_PUBLIC_SITE_URL is configured.
-  siteUrl: (configuredSiteUrl || "https://example.com").replace(/\/+$/, ""),
+  // Local fallback only; Netlify builds require NEXT_PUBLIC_SITE_URL.
+  siteUrl: (configuredSiteUrl || localSiteUrl).replace(/\/+$/, ""),
   phone: {
     display: "+41 77 218 85 37",
     href: "tel:+41772188537",
@@ -44,7 +42,6 @@ export const siteConfig: SiteConfig = {
     "de-CH": "Schweiz",
     "pt-PT": "Suíça",
   },
-  socialLinks: {},
   brand: {
     logoSrc: "/brand/cp-peixoto-logo.png",
     logoAlt: "CP Peixoto",

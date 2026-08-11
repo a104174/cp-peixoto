@@ -1,87 +1,63 @@
-# Especificação inicial da landing page — CP Peixoto
+# CP Peixoto — landing page e produção
 
 ## Estado atual
 
-A fundação técnica e a primeira fase visual estão concluídas. O website tem Header e Hero responsivos, design system base e conteúdo bilingue em alemão suíço e português. As restantes secções e o formulário visual continuam reservados para próximas iterações.
+A landing institucional está concluída funcionalmente em alemão suíço (`/`) e português (`/pt`). Mantém uma única composição partilhada e conteúdo tipado por dicionário.
 
-Os dados empresariais confirmados encontram-se em `src/content/site.ts`; o conteúdo localizado completo está em `src/content/de.ts` e `src/content/pt.ts`. O domínio continua pendente.
+Secções implementadas, por esta ordem:
 
-## Direção visual futura
+1. Header com navegação, seletor DE/PT e menu mobile.
+2. Hero com imagem estática local e CTA.
+3. Serviços.
+4. Referências com três comparadores antes/depois independentes.
+5. Sobre nós.
+6. Pedido de orçamento.
+7. Footer.
 
-A referência visual prevista utiliza:
+## Direção visual
 
-- preto, branco e dourado;
-- fotografia em grande destaque;
-- tipografia forte;
-- composição premium e profissional;
-- cards de serviços;
-- secção before/after;
-- CTAs fortes para pedido de orçamento.
+Preto/carvão, branco quente e dourado; tipografia Host Grotesk nos headings principais, Barlow Condensed no lockup e Manrope no corpo. A composição deve manter-se premium, arquitetónica, com bordas finas e sem elementos decorativos ou funcionalidades inventadas.
 
-Esta direção orienta o Header e o Hero já implementados e deverá manter-se nas próximas secções.
+## Estrutura técnica
 
-## Secções previstas
+- `src/app/` contém App Router, layouts localizados, metadata, sitemap, robots e Contact API.
+- `src/components/` contém a composição da landing, layouts e secções.
+- `src/content/` contém dicionários DE/PT e a configuração empresarial central.
+- `src/lib/` contém validação, ambiente server-only, metadata, fontes e Resend.
+- `src/emails/` contém o template do pedido recebido.
 
-### 1. Header
+As imagens são estáticas e locais em `public/images/`; o logo oficial está em `public/brand/`. Não há uploads, ficheiros submetidos por clientes nem infraestrutura de storage.
 
-Implementado com logo oficial, navegação localizada, CTA, seletor DE/PT e menu mobile acessível.
+## Contacto
 
-### 2. Hero
+O formulário envia para `POST /api/contact` os campos `name`, `email`, `phone`, `location`, `service`, `message` e `website` (honeypot). Nome, mensagem e pelo menos um meio de contacto são obrigatórios. A validação client-side usa os mesmos limites que o schema Zod strict no servidor.
 
-Implementado com conteúdo real DE/PT, CTA para contacto e composição visual neutra preparada para receber posteriormente uma imagem estática local através de `next/image`.
+O Route Handler limita o body, rejeita JSON/propriedades inválidas e não aceita destinatários do browser. A Resend é usada apenas no servidor, com `replyTo` quando existe email. Erros de entrega são genéricos e sem logging de dados pessoais.
 
-### 3. Serviços
+## Navegação, performance e acessibilidade
 
-Apresentação das áreas de serviço, potencialmente incluindo revestimentos de pavimentos, impermeabilizações e pavimentos decorativos. Os dados devem ser modelados em conteúdo estruturado antes de serem apresentados em cards.
+Os anchors `#start`, `#leistungen`, `#referenzen`, `#ueber-uns` e `#kontakt` são partilhados pelos idiomas e têm compensação para o Header sobreposto. O Hero é a única imagem preloaded; as restantes usam o lazy loading padrão de `next/image` e têm `sizes` responsivos. Apenas Header, formulário e comparadores before/after são Client Components por necessitarem de interação.
 
-### 4. Antes / Depois
+O documento inclui `header`, `main` e `footer`, skip link localizado, labels explícitos, focus-visible, alts localizados, sliders range operáveis por teclado, `touch-action: pan-y` e redução de movimento para utilizadores que a preferirem.
 
-Galeria de referências com comparação antes/depois, contexto do trabalho e imagens autorizadas. Deve existir cuidado com consentimento e identificação de locais.
+## SEO e configuração pública
 
-### 5. Benefícios / Porquê CP Peixoto
+Cada idioma define title, description, canonical, hreflang, Open Graph textual e `lang`. `robots.ts` e `sitemap.ts` publicam as duas rotas. A origem vem de `NEXT_PUBLIC_SITE_URL`; sem esta variável, desenvolvimento local usa `http://localhost:3000`. Builds Netlify requerem a origem final para impedir metadata pública incorreta.
 
-Razões verificáveis para escolher a empresa. Não adicionar promessas, certificações ou números sem confirmação.
+Não há Schema.org nem imagem Open Graph própria: ambos aguardam dados e assets aprovados.
 
-### 6. Pedido de orçamento
+## Produção na Netlify
 
-Formulário com nome e pelo menos um meio de contacto, além de telefone, localização, serviço pretendido e mensagem. A API pública `POST /api/contact` valida os dados no servidor e envia o pedido para o endereço definido em `CONTACT_EMAIL_TO` através da Resend.
+Não é necessária configuração adicional neste momento. A deteção de Next.js da Netlify suporta App Router, Route Handlers, imagens locais e variáveis de ambiente. Não adicionar `netlify.toml` ou o plugin legado apenas por precaução.
 
-O formulário deverá incluir uma declaração de privacidade quando for implementado. O campo `website` existe apenas como honeypot técnico e não deve ser apresentado como conteúdo visível.
+Antes do deploy, configurar `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `CONTACT_EMAIL_TO` e `NEXT_PUBLIC_SITE_URL` nas environment variables do projeto Netlify. O domínio, a verificação do remetente Resend e o teste de entrega após deploy continuam pendentes.
 
-### 7. Contactos
+## Blockers de lançamento
 
-Telefone, email, morada, região e ligações sociais apenas depois de a informação ser confirmada. Não inventar dados empresariais.
+- Definir domínio e `NEXT_PUBLIC_SITE_URL`.
+- Política de Privacidade aprovada para o processamento dos dados do formulário; só depois criar a página e o link no Footer.
+- Configurar e verificar Resend em produção; testar envio real apenas após deploy controlado.
+- Decidir se é necessário rate limiting partilhado para mitigar spam.
+- Criar asset Open Graph aprovado, se for desejada uma pré-visualização visual em partilhas.
 
-### 8. Footer
-
-Informação institucional, contactos, navegação secundária, links legais e futura política de privacidade.
-
-## Conteúdo e idiomas
-
-Alemão suíço (`de-CH`) é o idioma principal em `/`; português (`pt-PT`) está disponível em `/pt`. Dicionários TypeScript tipados alimentam os mesmos componentes, sem duplicação da UI. O seletor preserva a âncora atual quando aplicável.
-
-## SEO e dados estruturados
-
-A base inclui metadata localizada, alternates/hreflang, `robots.ts` e `sitemap.ts` com `/` e `/pt`. Antes do lançamento deve ser definido o domínio real em `NEXT_PUBLIC_SITE_URL`.
-
-A arquitetura deve permitir adicionar structured data Schema.org adequada a um negócio local/contractor quando existirem nome legal, área de atuação, contactos, morada e outras informações verificadas. Não adicionar schema com dados inventados nesta fase.
-
-Não implementar analytics, trackers ou cookies de marketing nesta fase.
-
-## Privacidade
-
-O formulário irá processar dados pessoais como:
-
-- nome;
-- email;
-- telefone;
-- localização e serviço pretendido;
-- mensagem.
-
-Será necessária uma política de privacidade antes do lançamento público, incluindo informação sobre finalidade, base legal, conservação, destinatários e direitos. O envio para a Resend deve ser tratado nessa documentação.
-
-## Segurança e operação
-
-A API deve manter validação server-side, limites de tamanho, honeypot, segredo Resend apenas no servidor, respostas sem stack traces e logs sem conteúdo de mensagens ou PII.
-
-Não há autenticação, CAPTCHA ou base de dados nesta fase. Rate limiting real deve ser avaliado antes do lançamento público e implementado através de uma solução adequada ao ambiente serverless, não através de um contador em memória.
+Não adicionar analytics, pixels, consentimento de cookies, redes sociais, CMS, base de dados ou novas páginas sem requisitos aprovados.

@@ -1,51 +1,54 @@
 # CP Peixoto
 
-Fundação técnica para a futura landing page institucional da CP Peixoto, uma empresa de revestimentos, impermeabilizações e pavimentos decorativos. A primeira fase visual inclui um design system base, Header e Hero responsivos, com alemão suíço como idioma principal e português como alternativa. O projeto permanece preparado para deploy posterior na Vercel.
+Landing page bilingue da CP Peixoto para revestimentos de pavimentos, impermeabilizações e pavimentos decorativos. A página está implementada em alemão suíço (`/`) e português (`/pt`), com formulário de pedido de orçamento e Footer.
 
 ## Stack
 
-- Next.js com App Router
-- TypeScript em modo strict
-- Tailwind CSS
-- ESLint
-- Resend
-- Zod
+- Next.js 16 com App Router
+- React 19 e TypeScript strict
+- Tailwind CSS 4 e ESLint
+- Zod para validação
+- Resend para entrega de pedidos de contacto
 - Vitest
-- Dicionários TypeScript tipados para DE/PT
-- npm
+- `next/image` e `next/font`
 
-## Instalação
+## Desenvolvimento local
 
 ```bash
 npm install
-```
-
-Cria `.env.local` a partir de `.env.example` e preenche as variáveis necessárias:
-
-```bash
 cp .env.example .env.local
-```
-
-### Variáveis de ambiente
-
-| Variável | Utilização |
-| --- | --- |
-| `RESEND_API_KEY` | Chave privada usada exclusivamente no servidor para enviar emails. |
-| `RESEND_FROM_EMAIL` | Remetente usado pela Resend. Deve ser um endereço, ou nome/endereço, num domínio autorizado. |
-| `CONTACT_EMAIL_TO` | Único destinatário dos pedidos de contacto, definido no servidor. |
-| `NEXT_PUBLIC_SITE_URL` | URL pública do website, usada na metadata, robots e sitemap. |
-
-Antes de enviar emails em produção, `RESEND_FROM_EMAIL` deve utilizar um domínio autorizado/verificado na Resend. Não colocar credenciais reais no repositório.
-
-## Desenvolvimento
-
-```bash
 npm run dev
 ```
 
-A versão alemã fica disponível em [http://localhost:3000](http://localhost:3000) e a versão portuguesa em [http://localhost:3000/pt](http://localhost:3000/pt).
+- Alemão suíço: `http://localhost:3000`
+- Português: `http://localhost:3000/pt`
 
-## Scripts
+## Variáveis de ambiente
+
+| Variável | Utilização |
+| --- | --- |
+| `RESEND_API_KEY` | Chave privada usada apenas no servidor para a Resend. |
+| `RESEND_FROM_EMAIL` | Remetente do email; deve pertencer a um domínio verificado na Resend. |
+| `CONTACT_EMAIL_TO` | Único destinatário dos pedidos. Em produção deverá ser `contactoxvstudio@gmail.com`. |
+| `NEXT_PUBLIC_SITE_URL` | Origem HTTPS pública, sem barra final; usada por metadata, canonical, hreflang, `robots.txt` e sitemap. |
+
+Não colocar valores reais no repositório. Localmente, sem `NEXT_PUBLIC_SITE_URL`, o website usa `http://localhost:3000` apenas para metadata de desenvolvimento. Os builds na Netlify exigem esta variável para evitar canonicals ou sitemaps com uma origem errada.
+
+## Contact API
+
+`POST /api/contact` aceita exclusivamente JSON com `name`, `email`, `phone`, `location`, `service`, `message` e o honeypot técnico `website`.
+
+- `name`, `message` e pelo menos um entre `email` ou `phone` são obrigatórios.
+- O schema é strict, tem limites por campo e limita o body a 16 KiB.
+- O destinatário é configurado no servidor; nunca vem do browser.
+- Emails válidos são usados como `replyTo`.
+- Falhas de configuração ou entrega devolvem um erro genérico e não registam PII.
+
+## SEO e acessibilidade
+
+As rotas `/` e `/pt` têm metadata localizada, canonical, hreflang, Open Graph textual, `robots.txt`, sitemap e `lang` correto. O logo oficial é usado como ícone. A landing usa landmarks semânticos, labels de formulário, foco visível, skip link, sliders acessíveis por teclado e suporte a `prefers-reduced-motion`.
+
+## Qualidade
 
 ```bash
 npm run lint
@@ -54,25 +57,19 @@ npm test
 npm run build
 ```
 
-## API de contacto
+## Produção na Netlify
 
-A fundação inclui `POST /api/contact`. O endpoint recebe JSON com `name`, `email`, `phone`, `location`, `service`, `message` e o honeypot técnico `website`. O nome e pelo menos um meio de contacto são necessários; os restantes campos têm limites de tamanho.
+A Netlify deteta automaticamente projetos Next.js; este repositório não precisa de `netlify.toml` enquanto não houver regras específicas de build, redirects ou imagens remotas. O App Router, `next/image` com imagens locais e o Route Handler `POST /api/contact` são compatíveis com a integração atual de Next.js da Netlify.
 
-A API aceita apenas propriedades conhecidas, rejeita JSON inválido, payloads fora do schema e honeypots preenchidos. O destinatário nunca vem do browser. Quando existe um email válido, é enviado como `reply-to`.
+Ao criar o projeto Netlify, configurar as quatro variáveis acima no contexto de produção. Usar o comando de build sugerido pela Netlify (`next build`) e deixar a integração atual do Next.js gerir as funções e imagens. Não instalar nem fixar o plugin legado `@netlify/plugin-nextjs`.
 
-Sem configuração válida da Resend, a API responde com um erro genérico de disponibilidade e não expõe detalhes internos.
+## Antes do lançamento público
 
-## Estrutura relevante
+1. Escolher e configurar o domínio final; definir `NEXT_PUBLIC_SITE_URL` com a origem HTTPS correta.
+2. Criar uma página de Política de Privacidade aprovada juridicamente e só então adicionar o respetivo link no Footer.
+3. Criar a chave de produção da Resend, verificar o domínio remetente, definir `RESEND_FROM_EMAIL` e `CONTACT_EMAIL_TO`, e testar um envio após deploy.
+4. Criar o projeto Netlify, configurar as variáveis de ambiente e validar `/`, `/pt`, `/api/contact`, sitemap e robots no URL de preview.
+5. Decidir e implementar rate limiting numa camada partilhada caso o volume/risco de spam o justifique. Não usar rate limiting em memória.
+6. Rever o Open Graph visual quando existir uma imagem de partilha aprovada.
 
-- `src/app/` — App Router, layouts localizados, metadata, sitemap, robots e API.
-- `src/components/` — Header, Hero e composição partilhada entre idiomas.
-- `src/content/` — dicionários DE/PT e configuração tipada central do website.
-- `src/emails/` — templates React para emails.
-- `src/lib/` — environment server-side, Resend e validação Zod.
-- `src/types/` — tipos partilhados do domínio.
-- `tests/` — testes de valor imediato para a validação do contacto.
-- `docs/landing-page-spec.md` — especificação do frontend futuro.
-
-## Próxima fase
-
-Antes do lançamento público será necessário definir o domínio, concluir as restantes secções visuais, adicionar imagens estáticas licenciadas, preparar a política de privacidade e decidir uma estratégia de rate limiting.
+Não há analytics, pixels, cookie banner, CMS, base de dados, uploads ou redes sociais neste projeto.

@@ -9,6 +9,7 @@ export const de = {
       "Professionelle Bodenbeschichtungen, Abdichtungen und dekorative Oberflächen für private, gewerbliche und industrielle Projekte in Aargau und Umgebung.",
   },
   accessibility: {
+    skipToContent: "Zum Hauptinhalt springen",
     mainNavigation: "Hauptnavigation",
     languageSwitcher: "Sprache wählen",
     openMenu: "Menü öffnen",

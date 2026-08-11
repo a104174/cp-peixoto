@@ -47,7 +47,7 @@ export const contactRequestSchema = z
     phone: optionalPhone,
     location: optionalText(CONTACT_FIELD_LIMITS.location),
     service: optionalText(CONTACT_FIELD_LIMITS.service),
-    message: optionalText(CONTACT_FIELD_LIMITS.message),
+    message: z.string().trim().min(1).max(CONTACT_FIELD_LIMITS.message),
     website: honeypot,
   })
   .strict()

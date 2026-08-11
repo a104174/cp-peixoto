@@ -9,28 +9,17 @@ interface HeroProps {
 }
 
 export function Hero({ content, locale }: HeroProps) {
-  const heroImage = siteConfig.heroImage;
-
   return (
     <section className="hero" id="start" aria-labelledby="hero-title">
       <div className="hero-media">
-        {heroImage ? (
-          <Image
-            src={heroImage.src}
-            alt={heroImage.alt[locale]}
-            fill
-            priority
-            sizes="100vw"
-            className="hero-image"
-          />
-        ) : (
-          <div className="hero-placeholder" aria-hidden="true">
-            <span className="placeholder-frame placeholder-frame-primary" />
-            <span className="placeholder-frame placeholder-frame-secondary" />
-            <span className="placeholder-surface" />
-            <span className="placeholder-accent" />
-          </div>
-        )}
+        <Image
+          src={siteConfig.heroImage.src}
+          alt={siteConfig.heroImage.alt[locale]}
+          fill
+          preload
+          sizes="100vw"
+          className="hero-image"
+        />
       </div>
       <div className="hero-overlay" aria-hidden="true" />
 

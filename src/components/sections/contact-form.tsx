@@ -270,6 +270,7 @@ export function ContactForm({ content, email, phone }: ContactFormProps) {
               fieldErrors.location ? "contact-location-error" : undefined
             }
             aria-invalid={Boolean(fieldErrors.location)}
+            autoComplete="address-level1"
             id="contact-location"
             maxLength={CONTACT_FIELD_LIMITS.location}
             name="location"

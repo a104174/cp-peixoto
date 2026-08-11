@@ -32,14 +32,14 @@ describe("contactRequestSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts a valid contact request without a message", () => {
+  it("rejects a contact request without a message", () => {
     const result = contactRequestSchema.safeParse({
       name: validPayload.name,
       email: validPayload.email,
       website: validPayload.website,
     });
 
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
   it("rejects an invalid email", () => {

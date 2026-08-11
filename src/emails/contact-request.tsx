@@ -37,7 +37,7 @@ export function ContactRequestEmail({
           {service ? <p><strong>Serviço pretendido:</strong> {service}</p> : null}
 
           <h2>Mensagem</h2>
-          <p style={{ whiteSpace: "pre-wrap" }}>{message || "Não indicada."}</p>
+          <p style={{ whiteSpace: "pre-wrap" }}>{message}</p>
         </main>
       </body>
     </html>

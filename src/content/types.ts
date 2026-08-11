@@ -60,6 +60,7 @@ export interface SiteDictionary {
   path: "/" | "/pt";
   metadata: { title: string; description: string };
   accessibility: {
+    skipToContent: string;
     mainNavigation: string;
     languageSwitcher: string;
     openMenu: string;

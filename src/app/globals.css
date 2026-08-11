@@ -98,6 +98,25 @@ svg {
   border: 0;
 }
 
+.skip-link {
+  position: fixed;
+  z-index: 100;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  background: var(--color-foreground);
+  color: var(--color-accent-ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transform: translateY(-170%);
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+}
+
 .eyebrow {
   display: flex;
   align-items: center;
@@ -351,12 +370,6 @@ svg {
   object-fit: cover;
   object-position: center;
   transform: scale(1.002);
-}
-
-.hero-placeholder {
-  position: absolute;
-  inset: 0;
-  background: var(--color-surface-dark);
 }
 
 .hero-overlay {

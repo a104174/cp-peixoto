@@ -9,6 +9,7 @@ export const pt = {
       "Revestimentos profissionais, impermeabilizações e superfícies decorativas para projetos particulares, comerciais e industriais em Aargau e região.",
   },
   accessibility: {
+    skipToContent: "Saltar para o conteúdo principal",
     mainNavigation: "Navegação principal",
     languageSwitcher: "Selecionar idioma",
     openMenu: "Abrir menu",
