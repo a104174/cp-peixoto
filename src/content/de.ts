@@ -156,12 +156,54 @@ export const de = {
     ],
   },
   contact: {
-    heading: "IHR PROJEKT. UNSERE LÖSUNG.",
+    label: "PROJEKT ANFRAGEN",
+    headingLines: ["IHR PROJEKT.", "UNSERE LÖSUNG."],
     description: [
       "Sie möchten Ihre Garage beschichten, einen Balkon abdichten oder eine bestehende Fläche sanieren?",
       "Kontaktieren Sie uns. Wir prüfen Ihr Projekt und beraten Sie persönlich über die passende Lösung.",
     ],
-    cta: "UNVERBINDLICHE OFFERTE ANFRAGEN",
+    details: {
+      phone: "Telefon",
+      email: "E-Mail",
+      region: "Region",
+    },
+    form: {
+      labels: {
+        name: "NAME",
+        email: "E-MAIL",
+        phone: "TELEFON",
+        location: "ORT / REGION",
+        service: "LEISTUNG",
+        message: "NACHRICHT",
+        optional: "OPTIONAL",
+      },
+      servicePlaceholder: "Leistung auswählen",
+      services: [
+        { value: "floor-coatings", label: "Bodenbeschichtungen" },
+        { value: "waterproofing", label: "Abdichtungen" },
+        { value: "decorative-floors", label: "Dekorative Böden" },
+        { value: "other", label: "Andere Anfrage" },
+      ],
+      contactGuidance:
+        "Bitte geben Sie mindestens eine E-Mail-Adresse oder Telefonnummer an.",
+      submit: "UNVERBINDLICHE OFFERTE ANFRAGEN",
+      submitting: "ANFRAGE WIRD GESENDET…",
+      success: {
+        heading: "VIELEN DANK.",
+        message:
+          "Ihre Anfrage wurde erfolgreich gesendet. Wir melden uns so bald wie möglich bei Ihnen.",
+      },
+      error:
+        "Ihre Anfrage konnte nicht gesendet werden. Bitte versuchen Sie es erneut oder kontaktieren Sie uns direkt.",
+      validation: {
+        required: "Dieses Feld ist erforderlich.",
+        invalidEmail: "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
+        invalidPhone: "Bitte geben Sie eine gültige Telefonnummer ein.",
+        contactRequired:
+          "Bitte geben Sie mindestens eine E-Mail-Adresse oder Telefonnummer an.",
+        tooLong: "Der eingegebene Wert ist zu lang.",
+      },
+    },
   },
   footer: {
     descriptor: "BODENBESCHICHTUNGEN · ABDICHTUNGEN · DEKORATIVE BÖDEN",

@@ -1,11 +1,9 @@
 import { z } from "zod";
 
-const MAX_NAME_LENGTH = 120;
-const MAX_EMAIL_LENGTH = 254;
-const MAX_PHONE_LENGTH = 32;
-const MAX_LOCATION_LENGTH = 160;
-const MAX_SERVICE_LENGTH = 120;
-const MAX_MESSAGE_LENGTH = 4_000;
+import {
+  CONTACT_FIELD_LIMITS,
+  CONTACT_PHONE_PATTERN,
+} from "./contact-constraints";
 
 function normalizeOptionalText(value: unknown): unknown {
   if (typeof value !== "string") {
@@ -24,7 +22,7 @@ const optionalText = (max: number) =>
 
 const optionalEmail = z.preprocess(
   normalizeOptionalText,
-  z.string().max(MAX_EMAIL_LENGTH).email().optional(),
+  z.string().max(CONTACT_FIELD_LIMITS.email).email().optional(),
 );
 
 const optionalPhone = z.preprocess(
@@ -32,8 +30,8 @@ const optionalPhone = z.preprocess(
   z
     .string()
     .min(7)
-    .max(MAX_PHONE_LENGTH)
-    .regex(/^[0-9+().\s-]+$/)
+    .max(CONTACT_FIELD_LIMITS.phone)
+    .regex(CONTACT_PHONE_PATTERN)
     .optional(),
 );
 
@@ -44,12 +42,12 @@ const honeypot = z.preprocess(
 
 export const contactRequestSchema = z
   .object({
-    name: z.string().trim().min(1).max(MAX_NAME_LENGTH),
+    name: z.string().trim().min(1).max(CONTACT_FIELD_LIMITS.name),
     email: optionalEmail,
     phone: optionalPhone,
-    location: optionalText(MAX_LOCATION_LENGTH),
-    service: optionalText(MAX_SERVICE_LENGTH),
-    message: optionalText(MAX_MESSAGE_LENGTH),
+    location: optionalText(CONTACT_FIELD_LIMITS.location),
+    service: optionalText(CONTACT_FIELD_LIMITS.service),
+    message: optionalText(CONTACT_FIELD_LIMITS.message),
     website: honeypot,
   })
   .strict()

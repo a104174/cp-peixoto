@@ -1,3 +1,5 @@
+import type { ContactFormValidationMessages, ContactServiceValue } from "@/types/contact";
+
 export type Locale = "de-CH" | "pt-PT";
 
 export type SectionAnchor =
@@ -105,9 +107,36 @@ export interface SiteDictionary {
     benefits: readonly string[];
   };
   contact: {
-    heading: string;
+    label: string;
+    headingLines: readonly [string, string];
     description: readonly [string, string];
-    cta: string;
+    details: {
+      phone: string;
+      email: string;
+      region: string;
+    };
+    form: {
+      labels: {
+        name: string;
+        email: string;
+        phone: string;
+        location: string;
+        service: string;
+        message: string;
+        optional: string;
+      };
+      servicePlaceholder: string;
+      services: readonly {
+        value: ContactServiceValue;
+        label: string;
+      }[];
+      contactGuidance: string;
+      submit: string;
+      submitting: string;
+      success: { heading: string; message: string };
+      error: string;
+      validation: ContactFormValidationMessages;
+    };
   };
   footer: {
     descriptor: string;

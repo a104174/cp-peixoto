@@ -2,7 +2,7 @@ import { getDictionary } from "@/content";
 import type { Locale } from "@/content/types";
 import { SiteHeader } from "@/components/layout/site-header";
 import { AboutSection } from "@/components/sections/about-section";
-import { FutureSectionAnchors } from "@/components/sections/future-section-anchors";
+import { ContactSection } from "@/components/sections/contact-section";
 import { Hero } from "@/components/sections/hero";
 import { ReferencesSection } from "@/components/sections/references-section";
 import { ServicesSection } from "@/components/sections/services-section";
@@ -27,7 +27,7 @@ export function LandingPage({ locale }: LandingPageProps) {
         <ServicesSection content={dictionary.services} />
         <ReferencesSection content={dictionary.references} />
         <AboutSection content={dictionary.trust} />
-        <FutureSectionAnchors dictionary={dictionary} />
+        <ContactSection content={dictionary.contact} locale={locale} />
       </main>
     </>
   );

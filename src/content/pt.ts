@@ -151,12 +151,53 @@ export const pt = {
     ],
   },
   contact: {
-    heading: "O SEU PROJETO. A NOSSA SOLUÇÃO.",
+    label: "PEDIR ORÇAMENTO",
+    headingLines: ["O SEU PROJETO.", "A NOSSA SOLUÇÃO."],
     description: [
       "Pretende revestir uma garagem, impermeabilizar uma varanda ou renovar uma superfície existente?",
       "Contacte-nos. Analisamos o seu projeto e aconselhamos pessoalmente a solução mais adequada.",
     ],
-    cta: "PEDIR ORÇAMENTO SEM COMPROMISSO",
+    details: {
+      phone: "Telefone",
+      email: "Email",
+      region: "Região",
+    },
+    form: {
+      labels: {
+        name: "NOME",
+        email: "EMAIL",
+        phone: "TELEFONE",
+        location: "LOCALIZAÇÃO / REGIÃO",
+        service: "SERVIÇO",
+        message: "MENSAGEM",
+        optional: "OPCIONAL",
+      },
+      servicePlaceholder: "Selecionar serviço",
+      services: [
+        { value: "floor-coatings", label: "Revestimentos de pavimentos" },
+        { value: "waterproofing", label: "Impermeabilizações" },
+        { value: "decorative-floors", label: "Pavimentos decorativos" },
+        { value: "other", label: "Outro pedido" },
+      ],
+      contactGuidance: "Indique pelo menos um email ou número de telefone.",
+      submit: "PEDIR ORÇAMENTO SEM COMPROMISSO",
+      submitting: "A ENVIAR PEDIDO…",
+      success: {
+        heading: "OBRIGADO.",
+        message:
+          "O seu pedido foi enviado com sucesso. Entraremos em contacto consigo assim que possível.",
+      },
+      error:
+        "Não foi possível enviar o pedido. Tente novamente ou contacte-nos diretamente.",
+      validation: {
+        required: "Este campo é obrigatório.",
+        invalidEmail: "Introduza um endereço de email válido.",
+        invalidPhone: "Introduza um número de telefone válido.",
+        contactRequired:
+          "Indique pelo menos um email ou número de telefone.",
+        tooLong: "O valor introduzido é demasiado longo.",
+      },
+    },
   },
   footer: {
     descriptor: "REVESTIMENTOS · IMPERMEABILIZAÇÕES · PAVIMENTOS DECORATIVOS",
