@@ -13,6 +13,13 @@ export interface NavigationItem {
 }
 
 export interface ServiceContent {
+  image: {
+    src:
+      | "/images/services/bodenbeschichtungen.png"
+      | "/images/services/abdichtungen.png"
+      | "/images/services/dekorative-boeden.png";
+    alt: string;
+  };
   title: string;
   tagline: string;
   description: string;
@@ -44,6 +51,12 @@ export interface SiteDictionary {
   };
   services: {
     label: string;
+    heading: string;
+    labels: {
+      applications: string;
+      systems: string;
+      finishes: string;
+    };
     items: readonly ServiceContent[];
   };
   references: {

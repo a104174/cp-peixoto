@@ -3,6 +3,7 @@ import type { Locale } from "@/content/types";
 import { SiteHeader } from "@/components/layout/site-header";
 import { FutureSectionAnchors } from "@/components/sections/future-section-anchors";
 import { Hero } from "@/components/sections/hero";
+import { ServicesSection } from "@/components/sections/services-section";
 
 interface LandingPageProps {
   locale: Locale;
@@ -21,6 +22,7 @@ export function LandingPage({ locale }: LandingPageProps) {
       />
       <main id="main-content">
         <Hero content={dictionary.hero} locale={locale} />
+        <ServicesSection content={dictionary.services} />
         <FutureSectionAnchors dictionary={dictionary} />
       </main>
     </>

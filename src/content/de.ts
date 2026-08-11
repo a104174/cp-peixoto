@@ -33,8 +33,18 @@ export const de = {
   },
   services: {
     label: "UNSERE LEISTUNGEN",
+    heading: "DREI BEREICHE. EIN ANSPRUCH: PERFEKTION.",
+    labels: {
+      applications: "Einsatzbereiche",
+      systems: "Systeme",
+      finishes: "Oberflächen",
+    },
     items: [
       {
+        image: {
+          src: "/images/services/bodenbeschichtungen.png",
+          alt: "Hellgrau beschichteter Boden in einem Innenraum",
+        },
         title: "BODENBESCHICHTUNGEN",
         tagline: "Stark. Widerstandsfähig. Langlebig.",
         description:
@@ -44,6 +54,10 @@ export const de = {
         cta: "MEHR ERFAHREN",
       },
       {
+        image: {
+          src: "/images/services/abdichtungen.png",
+          alt: "Abgedichteter Bodenanschluss an einer Türschwelle",
+        },
         title: "ABDICHTUNGEN",
         tagline: "Schutz, auf den Sie sich verlassen können.",
         description:
@@ -53,6 +67,10 @@ export const de = {
         cta: "MEHR ERFAHREN",
       },
       {
+        image: {
+          src: "/images/services/dekorative-boeden.png",
+          alt: "Glänzender roter dekorativer Boden in einem Wohnraum",
+        },
         title: "DEKORATIVE BÖDEN",
         tagline: "Funktion trifft Design.",
         description:

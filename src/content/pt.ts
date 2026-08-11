@@ -33,8 +33,18 @@ export const pt = {
   },
   services: {
     label: "OS NOSSOS SERVIÇOS",
+    heading: "TRÊS ÁREAS. UMA MISSÃO: PERFEIÇÃO.",
+    labels: {
+      applications: "Aplicações",
+      systems: "Sistemas",
+      finishes: "Acabamentos",
+    },
     items: [
       {
+        image: {
+          src: "/images/services/bodenbeschichtungen.png",
+          alt: "Pavimento cinzento-claro revestido num espaço interior",
+        },
         title: "REVESTIMENTOS DE PAVIMENTOS",
         tagline: "Resistentes. Robustos. Duradouros.",
         description:
@@ -44,6 +54,10 @@ export const pt = {
         cta: "SABER MAIS",
       },
       {
+        image: {
+          src: "/images/services/abdichtungen.png",
+          alt: "Ligação de pavimento impermeabilizada junto a uma porta",
+        },
         title: "IMPERMEABILIZAÇÕES",
         tagline: "Proteção em que pode confiar.",
         description:
@@ -53,6 +67,10 @@ export const pt = {
         cta: "SABER MAIS",
       },
       {
+        image: {
+          src: "/images/services/dekorative-boeden.png",
+          alt: "Pavimento decorativo vermelho brilhante numa habitação",
+        },
         title: "PAVIMENTOS DECORATIVOS",
         tagline: "Funcionalidade aliada ao design.",
         description:
