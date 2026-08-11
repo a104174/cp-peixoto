@@ -8,7 +8,6 @@ export function FutureSectionAnchors({
   dictionary,
 }: FutureSectionAnchorsProps) {
   const sections = [
-    { id: "referenzen", title: dictionary.references.heading },
     { id: "ueber-uns", title: dictionary.trust.headingLines.join(" ") },
     { id: "kontakt", title: dictionary.contact.heading },
   ] as const;

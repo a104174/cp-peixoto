@@ -29,6 +29,30 @@ export interface ServiceContent {
   cta: string;
 }
 
+export type ReferenceProjectId = "garage" | "balcony" | "industrial";
+
+export type ReferenceImagePath =
+  | "/images/references/garage-before.png"
+  | "/images/references/garage-after.png"
+  | "/images/references/balcony-before.png"
+  | "/images/references/balcony-after.png"
+  | "/images/references/industrial-before.png"
+  | "/images/references/industrial-after.png";
+
+export interface ReferenceImageContent {
+  src: ReferenceImagePath;
+  alt: string;
+  objectPosition?: string;
+}
+
+export interface ReferenceProjectContent {
+  id: ReferenceProjectId;
+  title: string;
+  ariaLabel: string;
+  beforeImage: ReferenceImageContent;
+  afterImage: ReferenceImageContent;
+}
+
 export interface SiteDictionary {
   locale: Locale;
   path: "/" | "/pt";
@@ -60,12 +84,19 @@ export interface SiteDictionary {
     items: readonly ServiceContent[];
   };
   references: {
+    label: string;
     heading: string;
     description: string;
     before: string;
     after: string;
+    valueLabel: string;
     process: readonly string[];
     cta: string;
+    projects: readonly [
+      ReferenceProjectContent,
+      ReferenceProjectContent,
+      ReferenceProjectContent,
+    ];
   };
   trust: {
     headingLines: readonly [string, string, string];

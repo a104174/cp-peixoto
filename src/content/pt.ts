@@ -82,12 +82,55 @@ export const pt = {
     ],
   },
   references: {
+    label: "DO ANTIGO AO NOVO",
     heading: "DO ANTIGO AO NOVO.",
     description: "Renovação profissional de superfícies existentes.",
     before: "ANTES",
     after: "DEPOIS",
+    valueLabel: "Depois visível",
     process: ["Preparação", "Primário", "Revestimento", "Selagem"],
     cta: "VER OS NOSSOS PROJETOS",
+    projects: [
+      {
+        id: "garage",
+        title: "GARAGEM",
+        ariaLabel: "Comparação antes e depois da garagem",
+        beforeImage: {
+          src: "/images/references/garage-before.png",
+          alt: "Garagem antes do revestimento profissional do pavimento",
+        },
+        afterImage: {
+          src: "/images/references/garage-after.png",
+          alt: "Garagem depois do revestimento profissional do pavimento",
+        },
+      },
+      {
+        id: "balcony",
+        title: "VARANDA",
+        ariaLabel: "Comparação antes e depois da varanda",
+        beforeImage: {
+          src: "/images/references/balcony-before.png",
+          alt: "Varanda antes da renovação profissional",
+        },
+        afterImage: {
+          src: "/images/references/balcony-after.png",
+          alt: "Varanda depois da renovação profissional",
+        },
+      },
+      {
+        id: "industrial",
+        title: "PAVIMENTO INDUSTRIAL",
+        ariaLabel: "Comparação antes e depois do pavimento industrial",
+        beforeImage: {
+          src: "/images/references/industrial-before.png",
+          alt: "Pavimento industrial antes do revestimento profissional",
+        },
+        afterImage: {
+          src: "/images/references/industrial-after.png",
+          alt: "Pavimento industrial depois do revestimento profissional",
+        },
+      },
+    ],
   },
   trust: {
     headingLines: ["TRABALHO CUIDADO.", "EXECUÇÃO PROFISSIONAL.", "RESULTADOS DURADOUROS."],

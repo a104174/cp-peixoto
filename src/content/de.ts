@@ -82,12 +82,60 @@ export const de = {
     ],
   },
   references: {
+    label: "AUS ALT WIRD NEU",
     heading: "AUS ALT WIRD NEU.",
     description: "Professionelle Sanierung bestehender Oberflächen.",
     before: "VORHER",
     after: "NACHHER",
-    process: ["Untergrundvorbereitung", "Grundierung", "Beschichtung", "Versiegelung"],
+    valueLabel: "Nachher sichtbar",
+    process: [
+      "Untergrundvorbereitung",
+      "Grundierung",
+      "Beschichtung",
+      "Versiegelung",
+    ],
     cta: "UNSERE PROJEKTE ANSEHEN",
+    projects: [
+      {
+        id: "garage",
+        title: "GARAGE",
+        ariaLabel: "Vorher-Nachher-Vergleich der Garage",
+        beforeImage: {
+          src: "/images/references/garage-before.png",
+          alt: "Garage vor der professionellen Bodenbeschichtung",
+        },
+        afterImage: {
+          src: "/images/references/garage-after.png",
+          alt: "Garage nach der professionellen Bodenbeschichtung",
+        },
+      },
+      {
+        id: "balcony",
+        title: "BALKON",
+        ariaLabel: "Vorher-Nachher-Vergleich des Balkons",
+        beforeImage: {
+          src: "/images/references/balcony-before.png",
+          alt: "Balkon vor der professionellen Sanierung",
+        },
+        afterImage: {
+          src: "/images/references/balcony-after.png",
+          alt: "Balkon nach der professionellen Sanierung",
+        },
+      },
+      {
+        id: "industrial",
+        title: "INDUSTRIEBODEN",
+        ariaLabel: "Vorher-Nachher-Vergleich des Industriebodens",
+        beforeImage: {
+          src: "/images/references/industrial-before.png",
+          alt: "Industrieboden vor der professionellen Beschichtung",
+        },
+        afterImage: {
+          src: "/images/references/industrial-after.png",
+          alt: "Industrieboden nach der professionellen Beschichtung",
+        },
+      },
+    ],
   },
   trust: {
     headingLines: ["SAUBERE ARBEIT.", "PROFESSIONELLE AUSFÜHRUNG.", "LANGLEBIGE ERGEBNISSE."],
