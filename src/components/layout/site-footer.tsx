@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+import { Reveal } from "@/components/motion/reveal";
 import { siteConfig } from "@/content/site";
 import type { Locale, SiteDictionary } from "@/content/types";
 
@@ -23,7 +24,7 @@ export function SiteFooter({
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="site-footer">
+    <Reveal as="footer" className="site-footer">
       <div className="site-container">
         <div className="site-footer-main">
           <a className="footer-brand" href={homePath}>
@@ -83,6 +84,6 @@ export function SiteFooter({
           <small>© {currentYear} {siteConfig.companyName}</small>
         </div>
       </div>
-    </footer>
+    </Reveal>
   );
 }

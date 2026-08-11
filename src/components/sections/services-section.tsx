@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+import { Reveal } from "@/components/motion/reveal";
 import type { ServiceContent, SiteDictionary } from "@/content/types";
 
 interface ServicesSectionProps {
@@ -7,6 +8,7 @@ interface ServicesSectionProps {
 }
 
 interface ServiceCardProps {
+  index: number;
   labels: SiteDictionary["services"]["labels"];
   service: ServiceContent;
 }
@@ -23,13 +25,13 @@ function DetailLine({ items }: { items: readonly string[] }) {
   );
 }
 
-function ServiceCard({ labels, service }: ServiceCardProps) {
+function ServiceCard({ index, labels, service }: ServiceCardProps) {
   const secondary = service.systems
     ? { label: labels.systems, items: service.systems }
     : { label: labels.finishes, items: service.finishes ?? [] };
 
   return (
-    <article className="service-card">
+    <Reveal as="article" className="service-card" delay={index * 90}>
       <div className="service-card-media">
         <Image
           className="service-card-image"
@@ -73,7 +75,7 @@ function ServiceCard({ labels, service }: ServiceCardProps) {
           </svg>
         </a>
       </div>
-    </article>
+    </Reveal>
   );
 }
 
@@ -85,7 +87,7 @@ export function ServicesSection({ content }: ServicesSectionProps) {
       aria-labelledby="services-title"
     >
       <div className="site-container">
-        <header className="services-header">
+        <Reveal as="header" className="services-header motion-section-heading">
           <p className="eyebrow services-eyebrow">
             <span aria-hidden="true" />
             {content.label}
@@ -93,11 +95,12 @@ export function ServicesSection({ content }: ServicesSectionProps) {
           <h2 className="services-title" id="services-title">
             {content.heading}
           </h2>
-        </header>
+        </Reveal>
 
         <div className="services-grid">
-          {content.items.map((service) => (
+          {content.items.map((service, index) => (
             <ServiceCard
+              index={index}
               key={service.title}
               labels={content.labels}
               service={service}

@@ -1,3 +1,4 @@
+import { Reveal } from "@/components/motion/reveal";
 import { BeforeAfterComparison } from "@/components/sections/before-after-comparison";
 import type { SiteDictionary } from "@/content/types";
 
@@ -15,7 +16,7 @@ export function ReferencesSection({ content }: ReferencesSectionProps) {
       aria-labelledby="references-title"
     >
       <div className="site-container references-layout">
-        <div className="references-copy">
+        <Reveal as="div" className="references-copy motion-section-heading">
           <p className="eyebrow references-eyebrow">
             <span aria-hidden="true" />
             {content.label}
@@ -44,7 +45,7 @@ export function ReferencesSection({ content }: ReferencesSectionProps) {
               <path d="M4 10h11M11 6l4 4-4 4" />
             </svg>
           </a>
-        </div>
+        </Reveal>
 
         <div className="references-showcase">
           {content.projects.map((project, index) => (

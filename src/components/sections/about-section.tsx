@@ -1,3 +1,4 @@
+import { Reveal } from "@/components/motion/reveal";
 import type { SiteDictionary } from "@/content/types";
 
 interface AboutSectionProps {
@@ -11,12 +12,12 @@ interface BenefitItemProps {
 
 function BenefitItem({ index, title }: BenefitItemProps) {
   return (
-    <li className="about-benefit">
+    <Reveal as="li" className="about-benefit" delay={index * 90}>
       <span className="about-benefit-number" aria-hidden="true">
         {String(index + 1).padStart(2, "0")}
       </span>
       <h3>{title}</h3>
-    </li>
+    </Reveal>
   );
 }
 
@@ -29,7 +30,10 @@ export function AboutSection({ content }: AboutSectionProps) {
     >
       <div className="site-container">
         <div className="about-intro">
-          <header className="about-heading-group">
+          <Reveal
+            as="header"
+            className="about-heading-group motion-section-heading motion-heading-lines"
+          >
             <p className="eyebrow about-eyebrow">
               <span aria-hidden="true" />
               {content.label}
@@ -40,13 +44,13 @@ export function AboutSection({ content }: AboutSectionProps) {
                 <span key={line}>{line}</span>
               ))}
             </h2>
-          </header>
+          </Reveal>
 
-          <div className="about-description">
+          <Reveal as="div" className="about-description" delay={90}>
             {content.description.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
-          </div>
+          </Reveal>
         </div>
 
         <ol className="about-benefits">

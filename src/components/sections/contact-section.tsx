@@ -1,3 +1,4 @@
+import { Reveal } from "@/components/motion/reveal";
 import { ContactForm } from "@/components/sections/contact-form";
 import { siteConfig } from "@/content/site";
 import type { Locale, SiteDictionary } from "@/content/types";
@@ -15,7 +16,10 @@ export function ContactSection({ content, locale }: ContactSectionProps) {
       aria-labelledby="contact-title"
     >
       <div className="site-container contact-layout">
-        <div className="contact-copy">
+        <Reveal
+          as="div"
+          className="contact-copy motion-section-heading motion-heading-lines"
+        >
           <p className="eyebrow contact-eyebrow">
             <span aria-hidden="true" />
             {content.label}
@@ -55,13 +59,15 @@ export function ContactSection({ content, locale }: ContactSectionProps) {
               <dd>{siteConfig.region[locale]}</dd>
             </div>
           </dl>
-        </div>
+        </Reveal>
 
-        <ContactForm
-          content={content.form}
-          email={siteConfig.email}
-          phone={siteConfig.phone}
-        />
+        <Reveal as="div" className="contact-form-reveal" delay={120}>
+          <ContactForm
+            content={content.form}
+            email={siteConfig.email}
+            phone={siteConfig.phone}
+          />
+        </Reveal>
       </div>
     </section>
   );

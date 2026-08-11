@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState } from "react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 
+import { Reveal } from "@/components/motion/reveal";
 import type { ReferenceProjectContent } from "@/content/types";
 
 interface BeforeAfterComparisonProps {
@@ -54,8 +55,10 @@ export function BeforeAfterComparison({
   };
 
   return (
-    <article
+    <Reveal
+      as="article"
       className="reference-project"
+      delay={index * 90}
       id={`reference-${project.id}`}
       aria-labelledby={`reference-${project.id}-title`}
     >
@@ -124,6 +127,6 @@ export function BeforeAfterComparison({
           </span>
         </div>
       </div>
-    </article>
+    </Reveal>
   );
 }
