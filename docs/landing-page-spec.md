@@ -2,9 +2,9 @@
 
 ## Estado atual
 
-Esta fase cria apenas a fundação técnica do website institucional da CP Peixoto. A página pública é temporária e não implementa ainda o design final, componentes visuais ou formulário visível.
+A fundação técnica e a primeira fase visual estão concluídas. O website tem Header e Hero responsivos, design system base e conteúdo bilingue em alemão suíço e português. As restantes secções e o formulário visual continuam reservados para próximas iterações.
 
-O conteúdo empresarial que ainda não foi confirmado deve permanecer como placeholder ou valor vazio. A configuração central encontra-se em `src/content/site.ts`.
+Os dados empresariais confirmados encontram-se em `src/content/site.ts`; o conteúdo localizado completo está em `src/content/de.ts` e `src/content/pt.ts`. O domínio continua pendente.
 
 ## Direção visual futura
 
@@ -18,17 +18,17 @@ A referência visual prevista utiliza:
 - secção before/after;
 - CTAs fortes para pedido de orçamento.
 
-Esta direção fica documentada para a próxima fase e não deve ser implementada durante a criação da fundação.
+Esta direção orienta o Header e o Hero já implementados e deverá manter-se nas próximas secções.
 
 ## Secções previstas
 
 ### 1. Header
 
-Navegação principal, identificação da CP Peixoto e CTA para pedido de orçamento. Os itens de navegação devem vir da configuração central.
+Implementado com logo oficial, navegação localizada, CTA, seletor DE/PT e menu mobile acessível.
 
 ### 2. Hero
 
-Mensagem principal sobre revestimentos, impermeabilizações e pavimentos decorativos, com fotografia de destaque e CTA principal. O texto final, região de atuação e contactos ainda precisam de confirmação.
+Implementado com conteúdo real DE/PT, CTA para contacto e composição visual neutra preparada para receber posteriormente uma imagem estática local através de `next/image`.
 
 ### 3. Serviços
 
@@ -58,11 +58,11 @@ Informação institucional, contactos, navegação secundária, links legais e f
 
 ## Conteúdo e idiomas
 
-Não implementar i18n nesta fase. Para facilitar a evolução, manter textos e dados empresariais em módulos de conteúdo/configuração e evitar espalhar copy diretamente pelos componentes. Numa fase posterior, o conteúdo pode ser organizado por locale (por exemplo, `pt-PT` e outros idiomas) sem reescrever a estrutura da aplicação.
+Alemão suíço (`de-CH`) é o idioma principal em `/`; português (`pt-PT`) está disponível em `/pt`. Dicionários TypeScript tipados alimentam os mesmos componentes, sem duplicação da UI. O seletor preserva a âncora atual quando aplicável.
 
 ## SEO e dados estruturados
 
-A base inclui metadata, `robots.ts` e `sitemap.ts`, usando a configuração central. Antes do lançamento, devem ser definidos o domínio real e os dados locais confirmados.
+A base inclui metadata localizada, alternates/hreflang, `robots.ts` e `sitemap.ts` com `/` e `/pt`. Antes do lançamento deve ser definido o domínio real em `NEXT_PUBLIC_SITE_URL`.
 
 A arquitetura deve permitir adicionar structured data Schema.org adequada a um negócio local/contractor quando existirem nome legal, área de atuação, contactos, morada e outras informações verificadas. Não adicionar schema com dados inventados nesta fase.
 

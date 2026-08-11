@@ -1,6 +1,6 @@
 # CP Peixoto
 
-Fundação técnica para a futura landing page institucional da CP Peixoto, uma empresa de revestimentos, impermeabilizações e pavimentos decorativos. A interface atual é intencionalmente temporária; esta fase prepara a aplicação para o frontend e deploy posterior na Vercel.
+Fundação técnica para a futura landing page institucional da CP Peixoto, uma empresa de revestimentos, impermeabilizações e pavimentos decorativos. A primeira fase visual inclui um design system base, Header e Hero responsivos, com alemão suíço como idioma principal e português como alternativa. O projeto permanece preparado para deploy posterior na Vercel.
 
 ## Stack
 
@@ -11,6 +11,7 @@ Fundação técnica para a futura landing page institucional da CP Peixoto, uma 
 - Resend
 - Zod
 - Vitest
+- Dicionários TypeScript tipados para DE/PT
 - npm
 
 ## Instalação
@@ -42,7 +43,7 @@ Antes de enviar emails em produção, `RESEND_FROM_EMAIL` deve utilizar um domí
 npm run dev
 ```
 
-A página temporária fica disponível em [http://localhost:3000](http://localhost:3000).
+A versão alemã fica disponível em [http://localhost:3000](http://localhost:3000) e a versão portuguesa em [http://localhost:3000/pt](http://localhost:3000/pt).
 
 ## Scripts
 
@@ -63,8 +64,9 @@ Sem configuração válida da Resend, a API responde com um erro genérico de di
 
 ## Estrutura relevante
 
-- `src/app/` — App Router, metadata, sitemap, robots e API.
-- `src/content/site.ts` — configuração tipada central do website.
+- `src/app/` — App Router, layouts localizados, metadata, sitemap, robots e API.
+- `src/components/` — Header, Hero e composição partilhada entre idiomas.
+- `src/content/` — dicionários DE/PT e configuração tipada central do website.
 - `src/emails/` — templates React para emails.
 - `src/lib/` — environment server-side, Resend e validação Zod.
 - `src/types/` — tipos partilhados do domínio.
@@ -73,4 +75,4 @@ Sem configuração válida da Resend, a API responde com um erro genérico de di
 
 ## Próxima fase
 
-Antes do lançamento público será necessário confirmar os dados empresariais, domínio, política de privacidade, conteúdo final, imagens/licenças e estratégia de rate limiting. O design completo da landing page fica para uma fase posterior.
+Antes do lançamento público será necessário definir o domínio, concluir as restantes secções visuais, adicionar imagens estáticas licenciadas, preparar a política de privacidade e decidir uma estratégia de rate limiting.
