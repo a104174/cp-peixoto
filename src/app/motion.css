@@ -1,3 +1,16 @@
+.hero-title.hero-title--pt {
+  font-size: clamp(3.55rem, 5.05vw, 5.1rem);
+  letter-spacing: -0.035em;
+  line-height: 0.96;
+}
+
+@media (max-width: 40rem) {
+  .hero-title.hero-title--pt {
+    font-size: clamp(2.9rem, 12.8vw, 4rem);
+    line-height: 0.97;
+  }
+}
+
 :root {
   --motion-fast: 180ms;
   --motion-base: 360ms;
@@ -192,13 +205,13 @@
 
 @keyframes hero-line-enter {
   from {
-    clip-path: inset(0 0 100% 0);
+    clip-path: inset(-0.18em 0 100% 0);
     opacity: 0;
     transform: translate3d(0, 0.55em, 0);
   }
 
   to {
-    clip-path: inset(0 0 0 0);
+    clip-path: inset(-0.18em 0 -0.18em 0);
     opacity: 1;
     transform: translate3d(0, 0, 0);
   }

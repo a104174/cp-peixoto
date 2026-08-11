@@ -29,7 +29,7 @@ export function Hero({ content, locale }: HeroProps) {
             <span aria-hidden="true" />
             {content.eyebrow}
           </p>
-          <h1 className="hero-title" id="hero-title">
+          <h1 className={`hero-title${locale === "pt-PT" ? " hero-title--pt" : ""}`} id="hero-title">
             {content.heading.map((line) => (
               <span key={line}>{line}</span>
             ))}

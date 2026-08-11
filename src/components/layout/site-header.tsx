@@ -7,6 +7,7 @@ import type { MouseEvent as ReactMouseEvent } from "react";
 
 import { siteConfig } from "@/content/site";
 import type { Locale, SiteDictionary } from "@/content/types";
+import { SpecularButton } from "@/components/ui/specular-button";
 
 interface SiteHeaderProps {
   accessibility: SiteDictionary["accessibility"];
@@ -141,9 +142,9 @@ export function SiteHeader({
             ))}
           </nav>
 
-          <a className="button button-primary header-cta" href="#kontakt">
+          <SpecularButton className="header-cta" href="#kontakt">
             {header.cta}
-          </a>
+          </SpecularButton>
 
           <button
             className="menu-toggle"

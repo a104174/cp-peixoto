@@ -1,0 +1,123 @@
+.specular-button {
+  --sb-radius: 8px;
+  --sb-tint: #380b0b;
+  --sb-tint-opacity: 0;
+  --sb-blur: 0px;
+  --sb-text-color: #f5f5f5;
+
+  position: relative;
+  display: inline-flex;
+  min-height: 2.85rem;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 0.7rem 1.15rem;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--sb-radius);
+  background: color-mix(
+    in srgb,
+    var(--sb-tint) calc(var(--sb-tint-opacity) * 100%),
+    transparent
+  );
+  color: var(--sb-text-color);
+  font: inherit;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.095em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: uppercase;
+  text-decoration: none;
+  backdrop-filter: blur(var(--sb-blur));
+  -webkit-backdrop-filter: blur(var(--sb-blur));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+  cursor: pointer;
+  outline: none;
+  transition:
+    background-color var(--motion-fast, 180ms) var(--ease-out, ease),
+    border-color var(--motion-fast, 180ms) var(--ease-out, ease),
+    color var(--motion-fast, 180ms) var(--ease-out, ease),
+    transform var(--motion-fast, 180ms) var(--ease-out, ease);
+}
+
+.specular-button--sm {
+  font-size: 0.85rem;
+  padding: 0.625rem 1.375rem;
+}
+
+.specular-button--md {
+  font-size: 1rem;
+  padding: 0.875rem 1.875rem;
+}
+
+.specular-button--lg {
+  font-size: 1.15rem;
+  padding: 1.125rem 2.5rem;
+}
+
+.specular-button.header-cta {
+  min-height: 2.85rem;
+  padding: 0.7rem 1.15rem;
+  border-color: rgb(188 141 62 / 82%);
+  background: transparent;
+  color: #f5f5f5;
+  font-size: 0.64rem;
+  backdrop-filter: blur(8px);
+}
+
+.specular-button__fx {
+  position: absolute;
+  z-index: 1;
+  inset: -20px;
+  pointer-events: none;
+}
+
+.specular-button__fx canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.specular-button__label {
+  position: relative;
+  z-index: 2;
+}
+
+.specular-button:active {
+  transform: scale(0.985);
+}
+
+.specular-button:focus-visible {
+  outline: 2px solid var(--color-accent-hover, #d0a354);
+  outline-offset: 3px;
+  box-shadow: var(--focus-ring, 0 0 0 3px rgb(188 141 62 / 36%));
+}
+
+.specular-button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.specular-button:disabled:active {
+  transform: none;
+}
+
+@media (hover: hover) {
+  .specular-button.header-cta:hover {
+    border-color: var(--color-accent-hover, #d0a354);
+    background: transparent;
+    color: #f5f5f5;
+    transform: translateY(-1px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .specular-button {
+    transition: none;
+  }
+
+  .specular-button:active,
+  .specular-button.header-cta:hover {
+    transform: none;
+  }
+}
