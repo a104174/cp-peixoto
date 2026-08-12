@@ -55,6 +55,26 @@ export interface ReferenceProjectContent {
   afterImage: ReferenceImageContent;
 }
 
+export type GalleryImagePath =
+  | "/images/gallery/imagem1.jpeg"
+  | "/images/gallery/imagem2.jpeg"
+  | "/images/gallery/imagem3.jpeg"
+  | "/images/gallery/imagem4.jpeg"
+  | "/images/gallery/imagem5.jpeg";
+
+export interface GalleryItemContent {
+  src: GalleryImagePath;
+  label: string;
+  alt: string;
+}
+
+export interface GalleryContent {
+  ariaLabel: string;
+  eyebrow: string;
+  heading: string;
+  items: readonly [GalleryItemContent, GalleryItemContent, GalleryItemContent, GalleryItemContent, GalleryItemContent];
+}
+
 export interface SiteDictionary {
   locale: Locale;
   path: "/" | "/pt";
@@ -139,6 +159,7 @@ export interface SiteDictionary {
       validation: ContactFormValidationMessages;
     };
   };
+  gallery: GalleryContent;
   footer: {
     descriptor: string;
   };

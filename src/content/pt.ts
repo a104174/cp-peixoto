@@ -200,6 +200,38 @@ export const pt = {
       },
     },
   },
+  gallery: {
+    ariaLabel: "Galeria de projetos",
+    eyebrow: "O NOSSO TRABALHO",
+    heading: "GALERIA",
+    items: [
+      {
+        src: "/images/gallery/imagem1.jpeg",
+        label: "REVESTIMENTO DE PAVIMENTO",
+        alt: "Pavimento interior claro revestido",
+      },
+      {
+        src: "/images/gallery/imagem2.jpeg",
+        label: "PAVIMENTO INDUSTRIAL",
+        alt: "Pavimento industrial laranja num espaço amplo",
+      },
+      {
+        src: "/images/gallery/imagem3.jpeg",
+        label: "VARANDA",
+        alt: "Pavimento claro de uma varanda com vista",
+      },
+      {
+        src: "/images/gallery/imagem4.jpeg",
+        label: "GARAGEM",
+        alt: "Pavimento revestido a verde numa garagem",
+      },
+      {
+        src: "/images/gallery/imagem5.jpeg",
+        label: "TERRAÇO",
+        alt: "Pavimento claro de um terraço com acabamento periférico",
+      },
+    ],
+  },
   footer: {
     descriptor: "REVESTIMENTOS & IMPERMEABILIZAÇÕES",
   },

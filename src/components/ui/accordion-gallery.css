@@ -1,0 +1,201 @@
+.accordion-gallery-section {
+  border-top: 1px solid rgb(188 141 62 / 18%);
+  background: var(--color-background-dark);
+  color: var(--color-foreground);
+  padding-block: clamp(3.25rem, 7vw, 6rem);
+}
+
+.accordion-gallery-header {
+  max-width: 38rem;
+  margin-bottom: clamp(2rem, 4vw, 3rem);
+}
+
+.accordion-gallery-eyebrow {
+  margin-bottom: 1rem;
+}
+
+.accordion-gallery-title {
+  margin: 0;
+  color: var(--color-foreground);
+  font-family: var(--font-hero-heading), Arial, sans-serif;
+  font-size: clamp(2.7rem, 5vw, 4.5rem);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.accordion-gallery-section__inner {
+  min-width: 0;
+}
+
+.accordion-gallery {
+  --ag-accent: #bc8d3e;
+  --ag-overlay: #080909;
+  --ag-text: #f5f5f5;
+  --ag-gap: 8px;
+  --ag-radius: 3px;
+  --ag-media-size: 320px;
+
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  flex-direction: row;
+  gap: var(--ag-gap);
+  overflow: hidden;
+  isolation: isolate;
+  perspective: 1400px;
+  perspective-origin: 50% 50%;
+}
+
+.accordion-gallery--vertical {
+  flex-direction: column;
+}
+
+.ag-panel {
+  position: relative;
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 0;
+  overflow: hidden;
+  border: 1px solid rgb(247 244 236 / 8%);
+  border-radius: var(--ag-radius);
+  background: #0b0c0c;
+  box-shadow: 0 10px 30px -18px rgb(0 0 0 / 80%);
+  color: inherit;
+  cursor: pointer;
+  outline: none;
+  text-decoration: none;
+  transform-origin: center center;
+  transform-style: preserve-3d;
+  -webkit-tap-highlight-color: transparent;
+  will-change: flex-grow, transform;
+}
+
+.ag-panel:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--ag-accent),
+    0 10px 30px -18px rgb(0 0 0 / 80%);
+}
+
+.ag-panel__frame {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.ag-panel__media {
+  --ag-gray: 0;
+  --ag-dim: 0.35;
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--ag-media-size);
+  height: 100%;
+  filter: grayscale(var(--ag-gray));
+  will-change: transform, filter;
+}
+
+.accordion-gallery--vertical .ag-panel__media {
+  width: 100%;
+  height: var(--ag-media-size);
+}
+
+.ag-panel__media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.ag-panel__overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      180deg,
+      transparent 45%,
+      color-mix(in srgb, var(--ag-overlay) 78%, transparent) 100%
+    ),
+    color-mix(in srgb, var(--ag-overlay) calc(var(--ag-dim, 0.35) * 100%), transparent);
+  pointer-events: none;
+}
+
+.ag-panel__label {
+  position: absolute;
+  right: 20px;
+  bottom: 20px;
+  left: 20px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+}
+
+.ag-panel__bar {
+  width: 3px;
+  height: 26px;
+  flex: 0 0 auto;
+  border-radius: 3px;
+  background: var(--ag-accent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--ag-accent) 60%, transparent);
+  opacity: 0;
+}
+
+.ag-panel__text {
+  overflow: hidden;
+  color: var(--ag-text);
+  font-family: inherit;
+  font-size: clamp(0.82rem, 1.1vw, 1rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  opacity: 0;
+  text-overflow: ellipsis;
+  text-shadow: 0 2px 14px rgb(0 0 0 / 55%);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+@media (max-width: 32.5rem) {
+  .accordion-gallery-section {
+    padding-block: 2.75rem 3.5rem;
+  }
+
+  .accordion-gallery {
+    flex-direction: column;
+    height: auto !important;
+    overflow: visible;
+    perspective: none;
+  }
+
+  .ag-panel {
+    min-height: 5.25rem;
+    transform: none !important;
+  }
+
+  .accordion-gallery .ag-panel__media {
+    width: 100%;
+    height: var(--ag-media-size);
+  }
+
+  .ag-panel__label {
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ag-panel,
+  .ag-panel__media {
+    will-change: auto;
+  }
+}

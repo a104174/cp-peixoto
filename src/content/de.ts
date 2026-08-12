@@ -206,6 +206,38 @@ export const de = {
       },
     },
   },
+  gallery: {
+    ariaLabel: "Projektgalerie",
+    eyebrow: "UNSERE ARBEIT",
+    heading: "GALERIE",
+    items: [
+      {
+        src: "/images/gallery/imagem1.jpeg",
+        label: "BODENBESCHICHTUNG",
+        alt: "Heller beschichteter Boden in einem Innenraum",
+      },
+      {
+        src: "/images/gallery/imagem2.jpeg",
+        label: "INDUSTRIEBODEN",
+        alt: "Orangefarbener Industrieboden in einer Halle",
+      },
+      {
+        src: "/images/gallery/imagem3.jpeg",
+        label: "BALKON",
+        alt: "Heller Balkonboden mit Aussicht",
+      },
+      {
+        src: "/images/gallery/imagem4.jpeg",
+        label: "GARAGE",
+        alt: "Grüner beschichteter Boden in einer Garage",
+      },
+      {
+        src: "/images/gallery/imagem5.jpeg",
+        label: "TERRASSE",
+        alt: "Heller Terrassenboden mit Randabschluss",
+      },
+    ],
+  },
   footer: {
     descriptor: "BODENBESCHICHTUNGEN & ABDICHTUNGEN",
   },

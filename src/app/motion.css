@@ -1,12 +1,12 @@
 .hero-title.hero-title--pt {
-  font-size: clamp(3.55rem, 5.05vw, 5.1rem);
+  font-size: clamp(3.3rem, 4.5vw, 4.05rem);
   letter-spacing: -0.035em;
   line-height: 0.96;
 }
 
 @media (max-width: 40rem) {
   .hero-title.hero-title--pt {
-    font-size: clamp(2.9rem, 12.8vw, 4rem);
+    font-size: clamp(2.7rem, 12.2vw, 3.8rem);
     line-height: 0.97;
   }
 }
