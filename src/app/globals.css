@@ -711,9 +711,9 @@ svg {
 
 .references-layout {
   display: grid;
-  grid-template-columns: minmax(16.5rem, 0.31fr) minmax(0, 0.69fr);
+  grid-template-columns: minmax(16.5rem, 0.28fr) minmax(0, 0.72fr);
   align-items: start;
-  gap: clamp(2.75rem, 4.5vw, 5rem);
+  gap: clamp(2.5rem, 3.5vw, 4rem);
 }
 
 .references-copy {
@@ -805,7 +805,7 @@ svg {
   min-width: 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;
-  gap: clamp(0.85rem, 1.6vw, 1.4rem);
+  gap: clamp(0.7rem, 1.2vw, 1rem);
 }
 
 .reference-project {
@@ -846,7 +846,7 @@ svg {
 
 .before-after-comparison {
   position: relative;
-  aspect-ratio: 3 / 4;
+  aspect-ratio: 2.75 / 4;
   margin-top: 0.85rem;
   overflow: hidden;
   border: 1px solid rgb(247 244 236 / 15%);
@@ -1028,6 +1028,14 @@ svg {
   .references-process li {
     grid-template-columns: 1.7rem minmax(0, 1fr);
     padding-right: 0.8rem;
+  }
+
+  .references-showcase {
+    gap: clamp(0.85rem, 1.6vw, 1.4rem);
+  }
+
+  .before-after-comparison {
+    aspect-ratio: 3 / 4;
   }
 }
 
