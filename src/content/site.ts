@@ -6,6 +6,11 @@ export interface SiteConfig {
   siteUrl: string;
   phone: { display: string; href: `tel:${string}` };
   email: { display: string; href: `mailto:${string}` };
+  socials: {
+    instagram: string | null;
+    facebook: string | null;
+    whatsapp: string;
+  };
   address: null;
   region: Record<Locale, string>;
   serviceArea: Record<Locale, string>;
@@ -33,6 +38,11 @@ export const siteConfig: SiteConfig = {
     display: "contactoxvstudio@gmail.com",
     href: "mailto:contactoxvstudio@gmail.com",
   },
+  socials: {
+    instagram: null,
+    facebook: null,
+    whatsapp: "https://wa.me/41772188537",
+  },
   address: null,
   region: {
     "de-CH": "Aargau & Umgebung",
@@ -47,7 +57,7 @@ export const siteConfig: SiteConfig = {
     logoAlt: "CP Peixoto",
   },
   heroImage: {
-    src: "/images/hero.png",
+    src: "/images/hero.jpeg",
     alt: {
       "de-CH": "Beschichtete Böden in einem Wohnraum und einer Industriehalle",
       "pt-PT": "Pavimentos revestidos numa habitação e num espaço industrial",

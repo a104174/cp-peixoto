@@ -89,7 +89,7 @@
 
 .ag-panel__media {
   --ag-gray: 0;
-  --ag-dim: 0.35;
+  --ag-dim: 0.14;
 
   position: absolute;
   top: 50%;
@@ -121,9 +121,9 @@
     linear-gradient(
       180deg,
       transparent 45%,
-      color-mix(in srgb, var(--ag-overlay) 78%, transparent) 100%
+      color-mix(in srgb, var(--ag-overlay) 58%, transparent) 100%
     ),
-    color-mix(in srgb, var(--ag-overlay) calc(var(--ag-dim, 0.35) * 100%), transparent);
+    color-mix(in srgb, var(--ag-overlay) calc(var(--ag-dim, 0.14) * 100%), transparent);
   pointer-events: none;
 }
 

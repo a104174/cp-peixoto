@@ -72,7 +72,6 @@ export function LandingPage({ locale }: LandingPageProps) {
       </main>
       <SiteFooter
         accessibility={dictionary.accessibility}
-        contactDetails={dictionary.contact.details}
         content={dictionary.footer}
         homePath={dictionary.path}
         locale={locale}
