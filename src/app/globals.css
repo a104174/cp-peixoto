@@ -211,6 +211,7 @@ svg {
 }
 
 .header-inner {
+  position: relative;
   display: grid;
   min-height: var(--header-height);
   grid-template-columns: minmax(18rem, 0.9fr) minmax(0, 1.2fr) auto;
@@ -268,12 +269,17 @@ svg {
 }
 
 .navigation-list {
+  position: absolute;
+  top: 50%;
+  left: 50%;
   display: flex;
+  width: max-content;
   align-items: center;
   gap: clamp(1.05rem, 1.8vw, 1.8rem);
   padding: 0;
   margin: 0;
   list-style: none;
+  transform: translate(-50%, -50%);
 }
 
 .navigation-link {
@@ -1951,7 +1957,7 @@ svg {
   }
 
   .site-navigation[data-open="true"] { display: grid; gap: 1.25rem; }
-  .navigation-list { display: grid; gap: 0; }
+  .navigation-list { position: static; display: grid; width: auto; gap: 0; transform: none; }
   .navigation-link { display: flex; min-height: 3.2rem; align-items: center; border-bottom: 1px solid var(--color-border); font-size: 0.76rem; }
   .navigation-link::after { display: none; }
   .header-cta { display: none; }
