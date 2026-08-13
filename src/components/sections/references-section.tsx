@@ -7,8 +7,6 @@ interface ReferencesSectionProps {
 }
 
 export function ReferencesSection({ content }: ReferencesSectionProps) {
-  const firstProjectId = `reference-${content.projects[0].id}`;
-
   return (
     <section
       className="references-section"
@@ -39,7 +37,7 @@ export function ReferencesSection({ content }: ReferencesSectionProps) {
             ))}
           </ol>
 
-          <a className="references-cta" href={`#${firstProjectId}`}>
+          <a className="references-cta" href="#galeria">
             <span>{content.cta}</span>
             <svg aria-hidden="true" viewBox="0 0 20 20" width="18" height="18">
               <path d="M4 10h11M11 6l4 4-4 4" />

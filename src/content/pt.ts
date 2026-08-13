@@ -90,7 +90,7 @@ export const pt = {
     after: "DEPOIS",
     valueLabel: "Depois visível",
     process: ["Preparação", "Primário", "Revestimento", "Selagem"],
-    cta: "VER OS NOSSOS PROJETOS",
+    cta: "VER MAIS EXEMPLOS",
     projects: [
       {
         id: "garage",

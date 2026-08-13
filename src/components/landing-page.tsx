@@ -38,6 +38,7 @@ export function LandingPage({ locale }: LandingPageProps) {
         <ContactSection content={dictionary.contact} locale={locale} />
         <section
           className="accordion-gallery-section"
+          id="galeria"
           aria-labelledby="accordion-gallery-title"
         >
           <div className="site-container accordion-gallery-section__inner">

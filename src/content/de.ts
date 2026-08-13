@@ -95,7 +95,7 @@ export const de = {
       "Beschichtung",
       "Versiegelung",
     ],
-    cta: "UNSERE PROJEKTE ANSEHEN",
+    cta: "MEHR BEISPIELE ANSEHEN",
     projects: [
       {
         id: "garage",

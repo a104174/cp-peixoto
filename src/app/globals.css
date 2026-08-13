@@ -1352,7 +1352,7 @@ svg {
   border-top: 1px solid rgb(188 141 62 / 34%);
   background: var(--color-background-dark);
   color: var(--color-foreground);
-  scroll-margin-top: var(--header-height);
+  scroll-margin-top: 0;
 }
 
 .contact-layout {
