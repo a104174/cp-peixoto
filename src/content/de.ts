@@ -150,19 +150,34 @@ export const de = {
       "Jedes Projekt beginnt mit einer sorgfältigen Beurteilung des Untergrunds und der Auswahl des passenden Systems.",
     ],
     benefits: [
-      "PERSÖNLICHE BERATUNG",
-      "SAUBERE AUSFÜHRUNG",
-      "HOCHWERTIGE MATERIALIEN",
-      "INDIVIDUELLE LÖSUNGEN",
+      {
+        title: "PERSÖNLICHE BERATUNG",
+        description:
+          "Wir beurteilen jedes Projekt individuell und empfehlen das passende System für Untergrund, Nutzung und gewünschtes Ergebnis.",
+      },
+      {
+        title: "15+ JAHRE ERFAHRUNG",
+        description:
+          "Über 15 Jahre praktische Erfahrung mit Bodenbeschichtungen und Abdichtungen – mit Präzision und Sorgfalt in jeder Arbeitsphase.",
+      },
+      {
+        title: "HOCHWERTIGE MATERIALIEN",
+        description:
+          "Wir arbeiten mit professionellen Systemen und hochwertigen Materialien, ausgewählt für Widerstandsfähigkeit und langlebige Ergebnisse.",
+      },
+      {
+        title: "INDIVIDUELLE LÖSUNGEN",
+        description:
+          "Jede Lösung wird individuell auf den Bereich und die Anforderungen des Kunden abgestimmt – von der Vorbereitung bis zum fertigen Ergebnis.",
+      },
     ],
   },
   contact: {
     label: "PROJEKT ANFRAGEN",
     headingLines: ["IHR PROJEKT.", "UNSERE LÖSUNG."],
-    description: [
-      "Sie möchten Ihre Garage beschichten, einen Balkon abdichten oder eine bestehende Fläche sanieren?",
+    description:
       "Kontaktieren Sie uns. Wir prüfen Ihr Projekt und beraten Sie persönlich über die passende Lösung.",
-    ],
+    whatsappCta: "DIREKT KONTAKTIEREN",
     details: {
       phone: "Telefon",
       email: "E-Mail",

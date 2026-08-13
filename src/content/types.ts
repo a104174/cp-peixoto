@@ -76,6 +76,11 @@ export interface GalleryContent {
   items: readonly [GalleryItemContent, GalleryItemContent, GalleryItemContent, GalleryItemContent, GalleryItemContent];
 }
 
+export interface BenefitContent {
+  title: string;
+  description: string;
+}
+
 export interface SiteDictionary {
   locale: Locale;
   path: "/" | "/pt";
@@ -126,12 +131,13 @@ export interface SiteDictionary {
     label: string;
     headingLines: readonly [string, string, string];
     description: readonly [string, string];
-    benefits: readonly string[];
+    benefits: readonly BenefitContent[];
   };
   contact: {
     label: string;
     headingLines: readonly [string, string];
-    description: readonly [string, string];
+    description: string;
+    whatsappCta: string;
     details: {
       phone: string;
       email: string;

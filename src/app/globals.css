@@ -1157,12 +1157,13 @@ svg {
 }
 
 .about-benefit {
+  position: relative;
   display: flex;
   min-width: 0;
-  min-height: 9rem;
+  min-height: 13rem;
   flex-direction: column;
   justify-content: space-between;
-  gap: 2rem;
+  gap: 1rem;
   padding: 1.2rem 0 1.1rem;
   border-top: 1px solid #bdb8ac;
   border-bottom: 1px solid #d5d1c7;
@@ -1171,12 +1172,18 @@ svg {
     color 180ms ease;
 }
 
+.about-benefit:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 0.35rem;
+}
+
 .about-benefit-number {
   color: #946820;
   font-size: 0.64rem;
   font-weight: 800;
   letter-spacing: 0.15em;
   line-height: 1;
+  transition: transform 180ms ease;
 }
 
 .about-benefit h3 {
@@ -1189,12 +1196,62 @@ svg {
   line-height: 1.25;
   text-transform: uppercase;
   overflow-wrap: break-word;
+  transition: transform 180ms ease;
+}
+
+.about-benefit-content {
+  margin-top: auto;
+}
+
+.about-benefit-description {
+  max-width: 34ch;
+  margin: 0.65rem 0 0;
+  color: #67685f;
+  font-size: clamp(0.72rem, 0.85vw, 0.82rem);
+  line-height: 1.5;
+  opacity: 0;
+  transform: translateY(0.45rem);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
 }
 
 @media (hover: hover) {
   .about-benefit:hover {
     border-top-color: var(--color-accent);
     color: #7e571a;
+  }
+
+  .about-benefit:hover .about-benefit-number,
+  .about-benefit:hover h3 {
+    transform: translateY(-0.2rem);
+  }
+
+  .about-benefit:hover .about-benefit-description {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.about-benefit:focus-within {
+  border-top-color: var(--color-accent);
+  color: #7e571a;
+}
+
+.about-benefit:focus-within .about-benefit-number,
+.about-benefit:focus-within h3 {
+  transform: translateY(-0.2rem);
+}
+
+.about-benefit:focus-within .about-benefit-description {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (hover: none), (max-width: 42rem) {
+  .about-benefit-description {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -1252,9 +1309,9 @@ svg {
 
   .about-benefit {
     min-height: 0;
-    flex-direction: row;
-    align-items: baseline;
-    justify-content: flex-start;
+    display: grid;
+    grid-template-columns: 1.8rem minmax(0, 1fr);
+    align-items: start;
     gap: 1.25rem;
     padding-block: 1.25rem;
     border-bottom-color: #c9c4b9;
@@ -1265,12 +1322,28 @@ svg {
   }
 
   .about-benefit-number {
-    width: 1.8rem;
-    flex: 0 0 auto;
+    width: auto;
   }
 
+  .about-benefit-content,
   .about-benefit h3 {
     max-width: none;
+  }
+
+  .about-benefit-description {
+    max-width: 48ch;
+    font-size: 0.84rem;
+    line-height: 1.6;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-benefit-description,
+  .about-benefit-number,
+  .about-benefit h3 {
+    transition: none;
   }
 }
 
@@ -1333,11 +1406,47 @@ svg {
   line-height: 1.75;
 }
 
+.contact-whatsapp-cta {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.68rem 0.9rem;
+  margin-top: 1.5rem;
+  border: 1px solid rgb(247 244 236 / 26%);
+  background: transparent;
+  color: var(--color-foreground);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  transition:
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.contact-whatsapp-cta svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.35;
+  transition: transform 180ms ease;
+}
+
 .contact-details {
   display: grid;
   max-width: 31rem;
   padding: 0;
   margin: clamp(2.75rem, 5vw, 4.25rem) 0 0;
+}
+
+.contact-whatsapp-cta:focus-visible {
+  border-color: var(--color-accent-hover);
+  color: var(--color-accent-hover);
 }
 
 .contact-details > div {
@@ -1612,6 +1721,15 @@ svg {
 }
 
 @media (hover: hover) {
+  .contact-whatsapp-cta:hover {
+    border-color: var(--color-accent-hover);
+    color: var(--color-accent-hover);
+  }
+
+  .contact-whatsapp-cta:hover svg {
+    transform: translateX(0.12rem);
+  }
+
   .contact-details a:hover,
   .contact-error-links a:hover {
     color: var(--color-accent-hover);

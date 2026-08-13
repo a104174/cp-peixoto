@@ -145,19 +145,34 @@ export const pt = {
       "Cada projeto começa com uma avaliação cuidada da superfície e com a escolha do sistema mais adequado.",
     ],
     benefits: [
-      "ACONSELHAMENTO PERSONALIZADO",
-      "EXECUÇÃO CUIDADA",
-      "MATERIAIS DE QUALIDADE",
-      "SOLUÇÕES PERSONALIZADAS",
+      {
+        title: "ACONSELHAMENTO PERSONALIZADO",
+        description:
+          "Analisamos cada projeto individualmente e recomendamos o sistema mais adequado à superfície, utilização e resultado pretendido.",
+      },
+      {
+        title: "15+ ANOS DE EXPERIÊNCIA",
+        description:
+          "Mais de 15 anos de experiência prática na aplicação de revestimentos e impermeabilizações, com atenção ao detalhe em cada etapa.",
+      },
+      {
+        title: "MATERIAIS DE QUALIDADE",
+        description:
+          "Trabalhamos com sistemas profissionais e materiais de qualidade, selecionados para garantir resistência e durabilidade.",
+      },
+      {
+        title: "SOLUÇÕES PERSONALIZADAS",
+        description:
+          "Cada solução é adaptada ao espaço e às necessidades do cliente, desde a preparação até ao acabamento final.",
+      },
     ],
   },
   contact: {
     label: "PEDIR ORÇAMENTO",
     headingLines: ["O SEU PROJETO.", "A NOSSA SOLUÇÃO."],
-    description: [
-      "Pretende revestir uma garagem, impermeabilizar uma varanda ou renovar uma superfície existente?",
+    description:
       "Contacte-nos. Analisamos o seu projeto e aconselhamos pessoalmente a solução mais adequada.",
-    ],
+    whatsappCta: "CONTACTAR DIRETAMENTE",
     details: {
       phone: "Telefone",
       email: "Email",

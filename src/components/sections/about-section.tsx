@@ -6,17 +6,25 @@ interface AboutSectionProps {
 }
 
 interface BenefitItemProps {
+  benefit: SiteDictionary["trust"]["benefits"][number];
   index: number;
-  title: string;
 }
 
-function BenefitItem({ index, title }: BenefitItemProps) {
+function BenefitItem({ benefit, index }: BenefitItemProps) {
   return (
-    <Reveal as="li" className="about-benefit" delay={index * 90}>
+    <Reveal
+      as="li"
+      className="about-benefit"
+      delay={index * 90}
+      tabIndex={0}
+    >
       <span className="about-benefit-number" aria-hidden="true">
         {String(index + 1).padStart(2, "0")}
       </span>
-      <h3>{title}</h3>
+      <div className="about-benefit-content">
+        <h3>{benefit.title}</h3>
+        <p className="about-benefit-description">{benefit.description}</p>
+      </div>
     </Reveal>
   );
 }
@@ -55,7 +63,7 @@ export function AboutSection({ content }: AboutSectionProps) {
 
         <ol className="about-benefits">
           {content.benefits.map((benefit, index) => (
-            <BenefitItem index={index} key={benefit} title={benefit} />
+            <BenefitItem benefit={benefit} index={index} key={benefit.title} />
           ))}
         </ol>
       </div>
