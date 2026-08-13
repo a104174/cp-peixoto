@@ -38,6 +38,8 @@ export interface AccordionGalleryProps {
   className?: string;
 }
 
+const mobileGalleryQuery = "(max-width: 32.5rem)";
+
 export function AccordionGallery({
   items,
   ariaLabel,
@@ -69,6 +71,11 @@ export function AccordionGallery({
   const firstRunRef = useRef(true);
   const mediaSizeRef = useRef(320);
   const [prefersReduced, setPrefersReduced] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia(mobileGalleryQuery).matches,
+  );
 
   const vertical = orientation === "vertical";
   const count = items.length;
@@ -87,10 +94,43 @@ export function AccordionGallery({
     return () => mediaQuery.removeEventListener("change", updatePreference);
   }, []);
 
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(mobileGalleryQuery);
+    const updateViewport = () => setIsMobile(mediaQuery.matches);
+
+    updateViewport();
+    mediaQuery.addEventListener("change", updateViewport);
+
+    return () => mediaQuery.removeEventListener("change", updateViewport);
+  }, []);
+
   const applyLayout = useCallback(
     (animate: boolean) => {
       const panels = panelRefs.current;
       if (!panels.length || !count) return;
+
+      if (isMobile) {
+        timelineRef.current?.kill();
+
+        gsap.set(panels, {
+          clearProps: "flexGrow,rotateX,rotateY,transform",
+        });
+        gsap.set(
+          mediaRefs.current.filter(
+            (element): element is HTMLElement => Boolean(element),
+          ),
+          {
+            clearProps: "x,y,xPercent,yPercent,transform,--ag-gray,--ag-dim",
+          },
+        );
+        gsap.set(
+          [...barRefs.current, ...textRefs.current].filter(
+            (element): element is HTMLElement => Boolean(element),
+          ),
+          { clearProps: "opacity,x,transform" },
+        );
+        return;
+      }
 
       const ratio = Math.min(Math.max(expandRatio, 0.2), 0.9);
       const grow = (ratio * (count - 1)) / (1 - ratio);
@@ -194,12 +234,18 @@ export function AccordionGallery({
       stagger,
       tilt,
       vertical,
+      isMobile,
     ],
   );
 
   useEffect(() => {
     const element = rootRef.current;
     if (!element) return;
+
+    if (isMobile) {
+      timelineRef.current?.kill();
+      return;
+    }
 
     const measure = () => {
       const rect = element.getBoundingClientRect();
@@ -220,7 +266,7 @@ export function AccordionGallery({
     resizeObserver.observe(element);
 
     return () => resizeObserver.disconnect();
-  }, [applyLayout, count, expandRatio, gap, vertical]);
+  }, [applyLayout, count, expandRatio, gap, isMobile, vertical]);
 
   useEffect(() => {
     applyLayout(!firstRunRef.current);
@@ -235,7 +281,7 @@ export function AccordionGallery({
   );
 
   const handleEnter = (index: number) => {
-    if (trigger === "hover") setActive(index);
+    if (!isMobile && trigger === "hover") setActive(index);
   };
 
   const handleClick = (index: number, event: MouseEvent<HTMLElement>) => {

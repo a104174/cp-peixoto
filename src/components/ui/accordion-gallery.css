@@ -170,20 +170,50 @@
   }
 
   .accordion-gallery {
-    flex-direction: column;
+    flex-direction: row;
     height: auto !important;
-    overflow: visible;
+    width: calc(100% + var(--container-gutter, 1rem));
+    max-width: none;
+    margin-right: calc(var(--container-gutter, 1rem) * -1);
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-right: var(--container-gutter, 1rem);
     perspective: none;
+    scroll-padding-inline: 0;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
   }
+
+  .accordion-gallery::-webkit-scrollbar { display: none; }
+
+  .accordion-gallery--vertical { flex-direction: row; }
 
   .ag-panel {
-    min-height: 5.25rem;
+    width: 86vw;
+    min-width: 86vw;
+    aspect-ratio: 4 / 5;
+    flex: 0 0 86vw;
     transform: none !important;
+    cursor: default;
+    scroll-snap-align: start;
+    scroll-snap-stop: normal;
+    will-change: auto;
   }
 
-  .accordion-gallery .ag-panel__media {
+  .accordion-gallery .ag-panel__media,
+  .accordion-gallery--vertical .ag-panel__media {
     width: 100%;
-    height: var(--ag-media-size);
+    height: 100%;
+    transform: translate(-50%, -50%) !important;
+    will-change: auto;
+  }
+
+  .accordion-gallery .ag-panel__bar,
+  .accordion-gallery .ag-panel__text {
+    opacity: 1 !important;
+    transform: none !important;
   }
 
   .ag-panel__label {
