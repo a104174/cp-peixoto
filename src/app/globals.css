@@ -36,6 +36,14 @@ html {
   background: var(--color-background-dark);
 }
 
+html:has(#kontakt:target) {
+  scroll-padding-top: 0;
+}
+
+html:has(#galeria:target) {
+  scroll-padding-top: 0;
+}
+
 body {
   min-width: 20rem;
   margin: 0;

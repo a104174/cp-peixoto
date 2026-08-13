@@ -3,6 +3,7 @@
   background: var(--color-background-dark);
   color: var(--color-foreground);
   padding-block: clamp(3.25rem, 7vw, 6rem);
+  scroll-margin-top: 0;
 }
 
 .accordion-gallery-header {
