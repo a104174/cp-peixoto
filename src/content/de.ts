@@ -230,11 +230,13 @@ export const de = {
         src: "/images/gallery/imagem4.jpeg",
         label: "GARAGE",
         alt: "Grüner beschichteter Boden in einer Garage",
+        objectPosition: "center 35%",
       },
       {
         src: "/images/gallery/imagem5.jpeg",
         label: "TERRASSE",
         alt: "Heller Terrassenboden mit Randabschluss",
+        objectPosition: "center 32%",
       },
     ],
   },

@@ -19,6 +19,7 @@ export function LandingPage({ locale }: LandingPageProps) {
     image: item.src,
     label: item.label,
     alt: item.alt,
+    objectPosition: item.objectPosition,
   }));
 
   return (

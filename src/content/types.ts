@@ -66,6 +66,7 @@ export interface GalleryItemContent {
   src: GalleryImagePath;
   label: string;
   alt: string;
+  objectPosition?: string;
 }
 
 export interface GalleryContent {

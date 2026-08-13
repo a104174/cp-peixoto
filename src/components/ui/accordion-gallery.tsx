@@ -12,6 +12,7 @@ export interface AccordionGalleryItem {
   label?: string;
   link?: string;
   alt?: string;
+  objectPosition?: string;
 }
 
 export interface AccordionGalleryProps {
@@ -310,6 +311,7 @@ export function AccordionGallery({
                   fill
                   sizes="(max-width: 520px) 100vw, 25vw"
                   draggable={false}
+                  style={{ objectPosition: item.objectPosition ?? "center center" }}
                 />
               </span>
               <span className="ag-panel__overlay" aria-hidden="true" />

@@ -224,11 +224,13 @@ export const pt = {
         src: "/images/gallery/imagem4.jpeg",
         label: "GARAGEM",
         alt: "Pavimento revestido a verde numa garagem",
+        objectPosition: "center 35%",
       },
       {
         src: "/images/gallery/imagem5.jpeg",
         label: "TERRAÇO",
         alt: "Pavimento claro de um terraço com acabamento periférico",
+        objectPosition: "center 32%",
       },
     ],
   },

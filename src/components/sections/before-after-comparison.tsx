@@ -121,7 +121,7 @@ export function BeforeAfterComparison({
 
         <div className="comparison-divider" aria-hidden="true">
           <span className="comparison-handle">
-            <svg viewBox="0 0 24 18" width="24" height="18">
+            <svg viewBox="0 0 24 18" width="18" height="14">
               <path d="M8 4 3 9l5 5M16 4l5 5-5 5M4 9h16" />
             </svg>
           </span>
