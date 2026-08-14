@@ -4,9 +4,9 @@ export const de = {
   locale: "de-CH",
   path: "/",
   metadata: {
-    title: "Bodenbeschichtungen & Abdichtungen in Aargau | CP Peixoto",
+    title: "CP Peixoto",
     description:
-      "Professionelle Bodenbeschichtungen, Abdichtungen und dekorative Oberflächen für private, gewerbliche und industrielle Projekte in Aargau und Umgebung.",
+      "Professionelle Bodenbeschichtungen, Abdichtungen und dekorative Böden für private, gewerbliche und industrielle Projekte in Aargau und Umgebung.",
   },
   accessibility: {
     skipToContent: "Zum Hauptinhalt springen",

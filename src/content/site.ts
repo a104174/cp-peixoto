@@ -21,8 +21,41 @@ export interface SiteConfig {
 const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
 const localSiteUrl = "http://localhost:3000";
 
-if (process.env.NETLIFY && !configuredSiteUrl) {
-  throw new Error("NEXT_PUBLIC_SITE_URL must be configured for Netlify builds");
+function isPublicSiteOrigin(value: string | undefined): value is string {
+  if (!value) return false;
+
+  try {
+    const url = new URL(value);
+    const hostname = url.hostname.toLowerCase();
+    const isLocalOrPlaceholder =
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "0.0.0.0" ||
+      hostname === "::1" ||
+      hostname === "example.com" ||
+      hostname.endsWith(".localhost") ||
+      hostname.endsWith(".example.com");
+
+    return (
+      url.protocol === "https:" &&
+      url.pathname === "/" &&
+      !url.search &&
+      !url.hash &&
+      !url.username &&
+      !url.password &&
+      !isLocalOrPlaceholder
+    );
+  } catch {
+    return false;
+  }
+}
+
+export const hasPublicSiteUrl = isPublicSiteOrigin(configuredSiteUrl);
+
+if (process.env.NETLIFY && !hasPublicSiteUrl) {
+  throw new Error(
+    "NEXT_PUBLIC_SITE_URL must be the final public HTTPS origin for Netlify builds",
+  );
 }
 
 export const siteConfig: SiteConfig = {

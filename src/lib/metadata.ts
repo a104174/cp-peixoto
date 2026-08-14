@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { getDictionary } from "@/content";
-import { getAbsoluteUrl, siteConfig } from "@/content/site";
+import { hasPublicSiteUrl, siteConfig } from "@/content/site";
 import type { Locale } from "@/content/types";
 
 const languageAlternates = {
@@ -15,19 +15,24 @@ export function createLocalizedMetadata(locale: Locale): Metadata {
   const alternateLocale = locale === "de-CH" ? "pt_PT" : "de_CH";
 
   return {
-    metadataBase: new URL(siteConfig.siteUrl),
+    metadataBase: hasPublicSiteUrl ? new URL(siteConfig.siteUrl) : undefined,
     title: dictionary.metadata.title,
     description: dictionary.metadata.description,
     icons: {
       icon: siteConfig.brand.logoSrc,
     },
-    alternates: {
-      canonical: dictionary.path,
-      languages: languageAlternates,
-    },
+    robots: hasPublicSiteUrl
+      ? { index: true, follow: true }
+      : { index: false, follow: false },
+    alternates: hasPublicSiteUrl
+      ? {
+          canonical: dictionary.path,
+          languages: languageAlternates,
+        }
+      : undefined,
     openGraph: {
       type: "website",
-      url: dictionary.path,
+      url: hasPublicSiteUrl ? dictionary.path : undefined,
       title: dictionary.metadata.title,
       description: dictionary.metadata.description,
       siteName: siteConfig.siteName,
@@ -39,8 +44,3 @@ export function createLocalizedMetadata(locale: Locale): Metadata {
     },
   };
 }
-
-export const localizedUrls = {
-  "de-CH": getAbsoluteUrl("/"),
-  "pt-PT": getAbsoluteUrl("/pt"),
-} satisfies Record<Locale, string>;

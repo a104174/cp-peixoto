@@ -4,9 +4,9 @@ export const pt = {
   locale: "pt-PT",
   path: "/pt",
   metadata: {
-    title: "Revestimentos e impermeabilizações em Aargau | CP Peixoto",
+    title: "CP Peixoto",
     description:
-      "Revestimentos profissionais, impermeabilizações e superfícies decorativas para projetos particulares, comerciais e industriais em Aargau e região.",
+      "Revestimentos de pavimentos, impermeabilizações e pavimentos decorativos para projetos particulares, comerciais e industriais em Aargau e região.",
   },
   accessibility: {
     skipToContent: "Saltar para o conteúdo principal",
