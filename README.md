@@ -29,7 +29,7 @@ npm run dev
 | --- | --- |
 | `RESEND_API_KEY` | Chave privada usada apenas no servidor para a Resend. |
 | `RESEND_FROM_EMAIL` | Remetente do email; deve pertencer a um domínio verificado na Resend. |
-| `CONTACT_EMAIL_TO` | Único destinatário dos pedidos. Em produção deverá ser `contactoxvstudio@gmail.com`. |
+| `CONTACT_EMAIL_TO` | Único destinatário dos pedidos. Em produção deverá ser `info@cp-peixoto.ch`. |
 | `NEXT_PUBLIC_SITE_URL` | Origem HTTPS pública, sem barra final; usada por metadata, canonical, hreflang, `robots.txt` e sitemap. |
 
 Não colocar valores reais no repositório. Localmente, sem `NEXT_PUBLIC_SITE_URL`, o website usa `http://localhost:3000` apenas para metadata de desenvolvimento. Os builds na Netlify exigem esta variável para evitar canonicals ou sitemaps com uma origem errada.

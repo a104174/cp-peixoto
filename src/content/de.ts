@@ -43,7 +43,7 @@ export const de = {
     items: [
       {
         image: {
-          src: "/images/services/bodenbeschichtungen.png",
+          src: "/images/services/bodenbeschichtungen.jpeg",
           alt: "Hellgrau beschichteter Boden in einem Innenraum",
         },
         title: "BODENBESCHICHTUNGEN",
@@ -56,7 +56,7 @@ export const de = {
       },
       {
         image: {
-          src: "/images/services/abdichtungen.png",
+          src: "/images/services/abdichtungen.jpeg",
           alt: "Abgedichteter Bodenanschluss an einer Türschwelle",
         },
         title: "ABDICHTUNGEN",
@@ -99,15 +99,15 @@ export const de = {
     projects: [
       {
         id: "garage",
-        title: "GARAGE",
-        ariaLabel: "Vorher-Nachher-Vergleich der Garage",
+        title: "INNENRÄUME",
+        ariaLabel: "Vorher-Nachher-Vergleich eines Innenraums",
         beforeImage: {
           src: "/images/references/garage-before.png",
-          alt: "Garage vor der professionellen Bodenbeschichtung",
+          alt: "Innenraum vor der professionellen Bodenbeschichtung",
         },
         afterImage: {
           src: "/images/references/garage-after.png",
-          alt: "Garage nach der professionellen Bodenbeschichtung",
+          alt: "Innenraum nach der professionellen Bodenbeschichtung",
         },
       },
       {
@@ -125,15 +125,15 @@ export const de = {
       },
       {
         id: "industrial",
-        title: "INDUSTRIEBODEN",
-        ariaLabel: "Vorher-Nachher-Vergleich des Industriebodens",
+        title: "ISOLIERUNG",
+        ariaLabel: "Vorher-Nachher-Vergleich der Isolierung",
         beforeImage: {
           src: "/images/references/industrial-before.png",
-          alt: "Industrieboden vor der professionellen Beschichtung",
+          alt: "Oberfläche vor der professionellen Isolierung",
         },
         afterImage: {
           src: "/images/references/industrial-after.png",
-          alt: "Industrieboden nach der professionellen Beschichtung",
+          alt: "Oberfläche nach der professionellen Isolierung",
         },
       },
     ],
@@ -243,14 +243,14 @@ export const de = {
       },
       {
         src: "/images/gallery/imagem4.jpeg",
-        label: "GARAGE",
-        alt: "Grüner beschichteter Boden in einer Garage",
+        label: "INNENRÄUME",
+        alt: "Grün beschichteter Boden in einem Innenraum",
         objectPosition: "center 35%",
       },
       {
-        src: "/images/gallery/imagem5.jpeg",
-        label: "TERRASSE",
-        alt: "Heller Terrassenboden mit Randabschluss",
+        src: "/images/gallery/imagem5-nova.jpeg",
+        label: "TREPPEN",
+        alt: "Helle beschichtete Treppen mit sauberem Abschluss",
         objectPosition: "center 32%",
       },
     ],

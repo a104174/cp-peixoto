@@ -68,12 +68,13 @@ export const siteConfig: SiteConfig = {
     href: "tel:+41772188537",
   },
   email: {
-    display: "contactoxvstudio@gmail.com",
-    href: "mailto:contactoxvstudio@gmail.com",
+    display: "info@cp-peixoto.ch",
+    href: "mailto:info@cp-peixoto.ch",
   },
   socials: {
-    instagram: null,
-    facebook: null,
+    instagram:
+      "https://www.instagram.com/cpeixoto07?igsi=MWVxMG1taWt0MjN0Mw%3D%3D&utm_source=qr",
+    facebook: "https://www.facebook.com/share/1EhCdr7CQe/?mibextid=wwXIfr",
     whatsapp: "https://wa.me/41772188537",
   },
   address: null,

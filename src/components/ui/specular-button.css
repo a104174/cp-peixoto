@@ -62,6 +62,7 @@
   background: transparent;
   color: #f5f5f5;
   font-size: 0.64rem;
+  opacity: 0.72;
   backdrop-filter: blur(8px);
 }
 
@@ -107,6 +108,7 @@
     border-color: var(--color-accent-hover, #d0a354);
     background: transparent;
     color: #f5f5f5;
+    opacity: 1;
     transform: translateY(-1px);
   }
 }

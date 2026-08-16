@@ -43,7 +43,7 @@ export const pt = {
     items: [
       {
         image: {
-          src: "/images/services/bodenbeschichtungen.png",
+          src: "/images/services/bodenbeschichtungen.jpeg",
           alt: "Pavimento cinzento-claro revestido num espaço interior",
         },
         title: "REVESTIMENTOS DE PAVIMENTOS",
@@ -56,7 +56,7 @@ export const pt = {
       },
       {
         image: {
-          src: "/images/services/abdichtungen.png",
+          src: "/images/services/abdichtungen.jpeg",
           alt: "Ligação de pavimento impermeabilizada junto a uma porta",
         },
         title: "IMPERMEABILIZAÇÕES",
@@ -94,15 +94,15 @@ export const pt = {
     projects: [
       {
         id: "garage",
-        title: "GARAGEM",
-        ariaLabel: "Comparação antes e depois da garagem",
+        title: "INTERIORES",
+        ariaLabel: "Comparação antes e depois de um espaço interior",
         beforeImage: {
           src: "/images/references/garage-before.png",
-          alt: "Garagem antes do revestimento profissional do pavimento",
+          alt: "Espaço interior antes do revestimento profissional do pavimento",
         },
         afterImage: {
           src: "/images/references/garage-after.png",
-          alt: "Garagem depois do revestimento profissional do pavimento",
+          alt: "Espaço interior depois do revestimento profissional do pavimento",
         },
       },
       {
@@ -120,15 +120,15 @@ export const pt = {
       },
       {
         id: "industrial",
-        title: "PAVIMENTO INDUSTRIAL",
-        ariaLabel: "Comparação antes e depois do pavimento industrial",
+        title: "ISOLAÇÃO",
+        ariaLabel: "Comparação antes e depois da isolação",
         beforeImage: {
           src: "/images/references/industrial-before.png",
-          alt: "Pavimento industrial antes do revestimento profissional",
+          alt: "Superfície antes do trabalho profissional de isolação",
         },
         afterImage: {
           src: "/images/references/industrial-after.png",
-          alt: "Pavimento industrial depois do revestimento profissional",
+          alt: "Superfície depois do trabalho profissional de isolação",
         },
       },
     ],
@@ -237,14 +237,14 @@ export const pt = {
       },
       {
         src: "/images/gallery/imagem4.jpeg",
-        label: "GARAGEM",
-        alt: "Pavimento revestido a verde numa garagem",
+        label: "INTERIORES",
+        alt: "Pavimento revestido a verde num espaço interior",
         objectPosition: "center 35%",
       },
       {
-        src: "/images/gallery/imagem5.jpeg",
-        label: "TERRAÇO",
-        alt: "Pavimento claro de um terraço com acabamento periférico",
+        src: "/images/gallery/imagem5-nova.jpeg",
+        label: "ESCADAS",
+        alt: "Escadas com acabamento revestido a cinzento",
         objectPosition: "center 32%",
       },
     ],

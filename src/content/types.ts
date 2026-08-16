@@ -17,8 +17,8 @@ export interface NavigationItem {
 export interface ServiceContent {
   image: {
     src:
-      | "/images/services/bodenbeschichtungen.png"
-      | "/images/services/abdichtungen.png"
+      | "/images/services/bodenbeschichtungen.jpeg"
+      | "/images/services/abdichtungen.jpeg"
       | "/images/services/dekorative-boeden.png";
     alt: string;
   };
@@ -60,7 +60,7 @@ export type GalleryImagePath =
   | "/images/gallery/imagem2.jpeg"
   | "/images/gallery/imagem3.jpeg"
   | "/images/gallery/imagem4.jpeg"
-  | "/images/gallery/imagem5.jpeg";
+  | "/images/gallery/imagem5-nova.jpeg";
 
 export interface GalleryItemContent {
   src: GalleryImagePath;
