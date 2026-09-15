@@ -12,7 +12,6 @@ import type {
 } from "@/lib/supabase/database.types";
 import { getAuthenticatedSupabase } from "@/lib/supabase/server";
 
-import { createDefaultSurcharges } from "@/domain/quotes/defaults";
 import Decimal from "decimal.js";
 import type {
   QuoteDraft,
@@ -340,17 +339,14 @@ export function mapQuoteToDraft(value: QuoteWithLines): QuoteDraft {
     })),
     subcontracts: lines(value.subcontracts),
     equipment: lines(value.equipment),
-    surcharges:
-      value.surcharges.length > 0
-        ? value.surcharges.map((line) => ({
-            id: line.id,
-            position: line.position,
-            name: line.name,
-            baseType: line.base_type,
-            rate: asText(line.rate),
-            baseAmount: asText(line.base_amount),
-            amount: asText(line.amount),
-          }))
-        : createDefaultSurcharges(),
+    surcharges: value.surcharges.map((line) => ({
+      id: line.id,
+      position: line.position,
+      name: line.name,
+      baseType: line.base_type,
+      rate: asText(line.rate),
+      baseAmount: asText(line.base_amount),
+      amount: asText(line.amount),
+    })),
   };
 }

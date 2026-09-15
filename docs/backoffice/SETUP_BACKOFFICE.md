@@ -38,9 +38,10 @@ As migrations são aplicadas por ordem:
 ```text
 supabase/migrations/202609150001_backoffice_mvp.sql
 supabase/migrations/202609150002_seed_westwood_materials.sql
+supabase/migrations/202609150003_quote_blank_financial_fields.sql
 ```
 
-Se não quiser usar a CLI, executar os dois ficheiros, pela mesma ordem, no SQL Editor do projeto Supabase. Não executar o seed antes da migration principal.
+Se não quiser usar a CLI, executar os três ficheiros, pela mesma ordem, no SQL Editor do projeto Supabase. Não executar o seed antes da migration principal.
 
 ## 4. Criar o primeiro utilizador
 
@@ -123,4 +124,3 @@ where relname in (
 Todas as tabelas devem apresentar `relrowsecurity = true`.
 
 O acesso anónimo deve devolver zero registos. O acesso autenticado usado pelo backoffice deve conseguir ler o catálogo e gravar através das Server Actions.
-

@@ -34,20 +34,24 @@ export function formatPercent(value: string | number | null | undefined): string
 export function decimalInputToRate(value: string): string {
   const normalized = value.trim().replace(",", ".");
   if (!normalized) {
-    return "0";
+    return "";
   }
 
   try {
     return new Decimal(normalized).div(100).toString();
   } catch {
-    return "0";
+    return "";
   }
 }
 
 export function rateToDecimalInput(value: string): string {
+  if (!value.trim()) {
+    return "";
+  }
+
   try {
     return new Decimal(value).mul(100).toFixed(4).replace(/\.?0+$/, "");
   } catch {
-    return "0";
+    return "";
   }
 }

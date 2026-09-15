@@ -2,6 +2,9 @@ import Decimal from "decimal.js";
 import { describe, expect, it } from "vitest";
 
 import { calculateQuote } from "../src/domain/quotes/calculations";
+import { createEmptyQuoteDraft } from "../src/domain/quotes/defaults";
+import { rateToDecimalInput } from "../src/domain/quotes/format";
+import { quoteDraftSchema } from "../src/lib/backoffice/schemas";
 import type { QuoteDraft, QuoteMaterialDraft } from "../src/domain/quotes/types";
 
 function material(
@@ -55,6 +58,41 @@ function baseDraft(overrides: Partial<QuoteDraft> = {}): QuoteDraft {
 }
 
 describe("quote calculation engine", () => {
+  it("starts a new quote as a clean draft", () => {
+    const draft = createEmptyQuoteDraft();
+
+    expect(draft).toMatchObject({
+      id: null,
+      quoteNumber: null,
+      clientId: null,
+      projectLocation: "",
+      description: "",
+      area: "",
+      areaUnit: "m²",
+      hourlyRate: "",
+      desiredMargin: "",
+      commercialDiscount: "",
+      skonto: "",
+      fixedDeduction: "",
+      manualGross: "",
+    });
+    expect(draft.quoteDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(rateToDecimalInput(draft.desiredMargin)).toBe("");
+    expect(draft.materials).toEqual([]);
+    expect(draft.labor).toEqual([]);
+    expect(draft.subcontracts).toEqual([]);
+    expect(draft.equipment).toEqual([]);
+    expect(draft.surcharges).toEqual([]);
+    expect(quoteDraftSchema.safeParse(draft).success).toBe(true);
+
+    const result = calculateQuote(draft);
+    expect(result.totalCost).toBe("0");
+    expect(result.recommendedGross).toBe("0");
+    expect(result.netValue).toBe("0");
+    expect(result.profit).toBe("0");
+    expect(result.warnings).toEqual([]);
+  });
+
   it("calculates a material per m²", () => {
     const result = calculateQuote(
       baseDraft({ materials: [material(0, "0.50", "3.90")] }),

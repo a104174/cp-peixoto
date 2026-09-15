@@ -50,6 +50,10 @@ function normalizePercentToRate(value: string | null | undefined): string | null
 }
 
 function validateNonNegative(value: string, label: string): string | null {
+  if (!value.trim()) {
+    return null;
+  }
+
   try {
     if (new Decimal(value.replace(",", ".")).lt(0)) {
       return `${label} não pode ser negativo.`;
@@ -80,6 +84,10 @@ function validateQuoteNumbers(draft: QuoteDraft): string | null {
     ["desconto comercial", draft.commercialDiscount],
     ["Skonto", draft.skonto],
   ] as const) {
+    if (!value.trim()) {
+      continue;
+    }
+
     try {
       if (new Decimal(value.replace(",", ".")).gte(1)) {
         return `${label} deve ser inferior a 100%.`;
@@ -129,6 +137,10 @@ function validateQuoteNumbers(draft: QuoteDraft): string | null {
   for (const [index, line] of draft.surcharges.entries()) {
     const error = validateNonNegative(line.rate, `Acréscimo ${index + 1}: taxa`);
     if (error) return error;
+    if (!line.rate.trim()) {
+      continue;
+    }
+
     try {
       if (new Decimal(line.rate.replace(",", ".")).gte(1)) {
         return `Acréscimo ${index + 1}: a taxa deve ser inferior a 100%.`;
@@ -387,6 +399,11 @@ function numericJson(value: string): string {
   return normalizeDecimal(value);
 }
 
+function nullableNumericJson(value: string | null | undefined): string | null {
+  const text = String(value ?? "").trim();
+  return text ? normalizeDecimal(text) : null;
+}
+
 function quotePersistPayload(draft: QuoteDraft, result: ReturnType<typeof calculateQuote>): Json {
   return {
     id: draft.id,
@@ -394,13 +411,13 @@ function quotePersistPayload(draft: QuoteDraft, result: ReturnType<typeof calcul
     project_location: draft.projectLocation,
     quote_date: draft.quoteDate,
     description: draft.description,
-    area: draft.area,
+    area: nullableNumericJson(draft.area),
     area_unit: draft.areaUnit,
-    hourly_rate: numericJson(draft.hourlyRate),
-    desired_margin: numericJson(draft.desiredMargin),
-    commercial_discount: numericJson(draft.commercialDiscount),
-    skonto: numericJson(draft.skonto),
-    fixed_deduction: numericJson(draft.fixedDeduction),
+    hourly_rate: nullableNumericJson(draft.hourlyRate),
+    desired_margin: nullableNumericJson(draft.desiredMargin),
+    commercial_discount: nullableNumericJson(draft.commercialDiscount),
+    skonto: nullableNumericJson(draft.skonto),
+    fixed_deduction: nullableNumericJson(draft.fixedDeduction),
     materials_total: result.materials.total,
     labor_total: result.labor.total,
     subcontracts_total: result.subcontracts.total,
@@ -437,7 +454,7 @@ function quotePersistPayload(draft: QuoteDraft, result: ReturnType<typeof calcul
       work_hours_per_person: numericJson(line.workHoursPerPerson),
       travel_hours_per_person: numericJson(line.travelHoursPerPerson),
       total_hours: result.labor.lines[index]?.totalHours ?? "0",
-      hourly_rate: numericJson(draft.hourlyRate),
+      hourly_rate: nullableNumericJson(draft.hourlyRate),
       cost_total: result.labor.lines[index]?.costTotal ?? "0",
       note: line.note,
     })),

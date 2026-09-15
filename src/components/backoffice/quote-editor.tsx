@@ -259,9 +259,9 @@ export function QuoteEditor({
         {
           id: newId(),
           position: current.surcharges.length,
-          name: "Novo acréscimo",
+          name: "",
           baseType: "direct_costs",
-          rate: "0",
+          rate: "",
           baseAmount: "0",
           amount: "0",
         },
@@ -477,7 +477,7 @@ export function QuoteEditor({
             </div>
             <p className="bo-section-help">O preço sugerido usa o valor com desconto do catálogo. Os campos da linha são overrides apenas deste orçamento.</p>
             {draft.materials.length === 0 ? (
-              <div className="bo-inline-empty">Ainda não há materiais. Adicione uma linha para pesquisar o catálogo.</div>
+              <div className="bo-inline-empty">Ainda não adicionou materiais.</div>
             ) : (
               <div className="bo-line-list">
                 {draft.materials.map((line, index) => {
@@ -519,8 +519,12 @@ export function QuoteEditor({
                                   materialNameSnapshot: "",
                                   variantSnapshot: "",
                                   packageSnapshot: "",
-                                  unitPrice: "0",
-                                  consumptionOrQuantity: "0",
+                                  calculationType: "per_m2",
+                                  consumptionOrQuantity: "",
+                                  unit: "",
+                                  unitPrice: "",
+                                  areaFactor: "0",
+                                  areaFactorOverridden: false,
                                   notes: "",
                                 });
                               }
@@ -614,7 +618,7 @@ export function QuoteEditor({
               </div>
               <button className="bo-button bo-button-secondary" onClick={addLabor} type="button">+ Adicionar linha</button>
             </div>
-            {draft.labor.length === 0 ? <div className="bo-inline-empty">Adicione uma linha para registar trabalhadores e horas.</div> : null}
+            {draft.labor.length === 0 ? <div className="bo-inline-empty">Ainda não adicionou mão de obra.</div> : null}
             {draft.labor.map((line, index) => {
               const lineResult = calculation.labor.lines[index];
               return (
@@ -638,7 +642,7 @@ export function QuoteEditor({
           <SimpleLinesSection
             title="4 · Subempreitadas"
             headingId="subcontracts-heading"
-            empty="Adicione subempreitadas quando existirem."
+            empty="Ainda não adicionou subempreitadas."
             lines={draft.subcontracts}
             lineTotals={calculation.subcontracts.lineTotals}
             total={calculation.subcontracts.total}
@@ -650,7 +654,7 @@ export function QuoteEditor({
           <SimpleLinesSection
             title="5 · Viatura / equipamento"
             headingId="equipment-heading"
-            empty="Adicione viaturas, equipamento ou outros custos unitários."
+            empty="Ainda não adicionou equipamento."
             lines={draft.equipment}
             lineTotals={calculation.equipment.lineTotals}
             total={calculation.equipment.total}
@@ -668,6 +672,7 @@ export function QuoteEditor({
               <button className="bo-button bo-button-secondary" onClick={addSurcharge} type="button">+ Adicionar linha</button>
             </div>
             <p className="bo-section-help">As linhas são aplicadas sequencialmente. A base “custos diretos + anteriores” inclui os acréscimos anteriores.</p>
+            {draft.surcharges.length === 0 ? <div className="bo-inline-empty">Ainda não adicionou acréscimos.</div> : null}
             <div className="bo-surcharge-list">
               {draft.surcharges.map((line, index) => {
                 const result = calculation.surcharges.lines[index];
