@@ -16,6 +16,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
+      disallow: ["/backoffice", "/backoffice/"],
     },
     sitemap: getAbsoluteUrl("/sitemap.xml"),
   };
