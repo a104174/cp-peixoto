@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { formatMoney } from "@/domain/quotes/format";
+import { formatMoney, formatNumber } from "@/domain/quotes/format";
 import { listQuotes } from "@/lib/backoffice/data";
 
 export const dynamic = "force-dynamic";
@@ -51,10 +51,11 @@ export default async function QuotesPage({
           defaultValue={params.q ?? ""}
           id="quote-search"
           name="q"
-          placeholder="N.º, cliente ou local da obra"
+          placeholder="Pesquisar orçamentos..."
           type="search"
         />
         <button className="bo-button bo-button-secondary" type="submit">Pesquisar</button>
+        {query ? <Link className="bo-button bo-button-ghost" href="/backoffice/orcamentos">Limpar</Link> : null}
       </form>
 
       <section className="bo-card">
@@ -62,6 +63,7 @@ export default async function QuotesPage({
           <div className="bo-empty-state">
             <h2>{query ? "Nenhum orçamento encontrado" : "Ainda não existem orçamentos"}</h2>
             <p>{query ? "Tente outro termo de pesquisa." : "Crie o primeiro orçamento para começar o histórico."}</p>
+            {!query ? <Link className="bo-button bo-button-secondary" href="/backoffice/orcamentos/novo">+ Novo orçamento</Link> : null}
           </div>
         ) : (
           <div className="bo-table-wrap">
@@ -83,9 +85,9 @@ export default async function QuotesPage({
                   <tr key={quote.id}>
                     <td data-label="N.º orçamento"><strong>{quote.quote_number}</strong></td>
                     <td data-label="Data">{formatDate(quote.quote_date)}</td>
-                    <td data-label="Cliente">{quote.client_name_snapshot ?? "—"}</td>
+                    <td data-label="Cliente">{quote.client_name_snapshot ?? "Sem cliente"}</td>
                     <td data-label="Local da obra">{quote.project_location ?? "—"}</td>
-                    <td data-label="Área">{quote.area ? `${quote.area} ${quote.area_unit}` : "—"}</td>
+                    <td data-label="Área">{quote.area ? `${formatNumber(quote.area)} ${quote.area_unit}` : "—"}</td>
                     <td data-label="Valor líquido"><strong>{formatMoney(quote.net_value)}</strong></td>
                     <td data-label="Atualizado">{formatDate(quote.updated_at.slice(0, 10))}</td>
                     <td data-label="Ações">
@@ -103,4 +105,3 @@ export default async function QuotesPage({
     </div>
   );
 }
-

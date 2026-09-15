@@ -9,12 +9,14 @@ import { clientInputSchema, materialInputSchema, quoteDraftSchema } from "./sche
 import { getAuthenticatedSupabase } from "@/lib/supabase/server";
 import type { Json } from "@/lib/supabase/database.types";
 import type { QuoteDraft } from "@/domain/quotes/types";
+import {
+  normalizeLocaleDecimal,
+  validateQuoteDraft,
+  zodFieldErrors,
+  type ActionResult,
+} from "./validation";
 
-export type ActionResult = {
-  success: boolean;
-  error?: string;
-  id?: string;
-};
+export type { ActionResult } from "./validation";
 
 function stringValue(formData: FormData, key: string): string {
   const value = formData.get(key);
@@ -22,21 +24,11 @@ function stringValue(formData: FormData, key: string): string {
 }
 
 function normalizeDecimal(value: string | null | undefined, fallback = "0"): string {
-  const text = String(value ?? "").trim().replace(",", ".");
+  const text = String(value ?? "").trim();
   if (!text) {
     return fallback;
   }
-
-  try {
-    return new Decimal(text).toString();
-  } catch {
-    return fallback;
-  }
-}
-
-function normalizeNullableDecimal(value: string | null | undefined): string | null {
-  const text = String(value ?? "").trim();
-  return text ? normalizeDecimal(text) : null;
+  return normalizeLocaleDecimal(text) ?? fallback;
 }
 
 function normalizePercentToRate(value: string | null | undefined): string | null {
@@ -45,112 +37,23 @@ function normalizePercentToRate(value: string | null | undefined): string | null
   try {
     return new Decimal(text.replace(",", ".")).div(100).toString();
   } catch {
-    return text;
-  }
-}
-
-function validateNonNegative(value: string, label: string): string | null {
-  if (!value.trim()) {
     return null;
   }
-
-  try {
-    if (new Decimal(value.replace(",", ".")).lt(0)) {
-      return `${label} não pode ser negativo.`;
-    }
-  } catch {
-    return `${label} inválido.`;
-  }
-  return null;
 }
 
-function validateQuoteNumbers(draft: QuoteDraft): string | null {
-  const fields: [string, string][] = [
-    ["Área", draft.area],
-    ["Preço/hora", draft.hourlyRate],
-    ["Margem desejada", draft.desiredMargin],
-    ["Desconto comercial", draft.commercialDiscount],
-    ["Skonto", draft.skonto],
-    ["Dedução fixa", draft.fixedDeduction],
-  ];
+function authRequired(): ActionResult {
+  return {
+    success: false,
+    code: "AUTH_REQUIRED",
+    message: "A sua sessão expirou. Inicie sessão novamente.",
+  };
+}
 
-  for (const [label, value] of fields) {
-    const error = validateNonNegative(value, label);
-    if (error) return error;
-  }
-
-  for (const [label, value] of [
-    ["margem desejada", draft.desiredMargin],
-    ["desconto comercial", draft.commercialDiscount],
-    ["Skonto", draft.skonto],
-  ] as const) {
-    if (!value.trim()) {
-      continue;
-    }
-
-    try {
-      if (new Decimal(value.replace(",", ".")).gte(1)) {
-        return `${label} deve ser inferior a 100%.`;
-      }
-    } catch {
-      return `${label} inválido.`;
-    }
-  }
-
-  for (const [index, line] of draft.materials.entries()) {
-    for (const [label, value] of [
-      ["consumo/quantidade", line.consumptionOrQuantity],
-      ["preço unitário", line.unitPrice],
-      ["fator de área", line.areaFactor],
-    ] as const) {
-      const error = validateNonNegative(value, `Material ${index + 1}: ${label}`);
-      if (error) return error;
-    }
-  }
-
-  for (const [index, line] of draft.labor.entries()) {
-    for (const [label, value] of [
-      ["pessoas", line.people],
-      ["horas de trabalho", line.workHoursPerPerson],
-      ["horas de deslocação", line.travelHoursPerPerson],
-    ] as const) {
-      const error = validateNonNegative(value, `Mão de obra ${index + 1}: ${label}`);
-      if (error) return error;
-    }
-  }
-
-  for (const group of [
-    ["Subempreitada", draft.subcontracts],
-    ["Equipamento", draft.equipment],
-  ] as const) {
-    for (const [index, line] of group[1].entries()) {
-      for (const [label, value] of [
-        ["quantidade", line.quantity],
-        ["preço unitário", line.unitPrice],
-      ] as const) {
-        const error = validateNonNegative(value, `${group[0]} ${index + 1}: ${label}`);
-        if (error) return error;
-      }
-    }
-  }
-
-  for (const [index, line] of draft.surcharges.entries()) {
-    const error = validateNonNegative(line.rate, `Acréscimo ${index + 1}: taxa`);
-    if (error) return error;
-    if (!line.rate.trim()) {
-      continue;
-    }
-
-    try {
-      if (new Decimal(line.rate.replace(",", ".")).gte(1)) {
-        return `Acréscimo ${index + 1}: a taxa deve ser inferior a 100%.`;
-      }
-    } catch {
-      return `Acréscimo ${index + 1}: taxa inválida.`;
-    }
-  }
-
-  return null;
+function logDatabaseError(operation: string, error: { code?: string; message: string }) {
+  console.error(`[backoffice] ${operation}`, {
+    code: error.code,
+    message: error.message,
+  });
 }
 
 function materialIdsFromDraft(draft: QuoteDraft): string[] {
@@ -170,7 +73,7 @@ async function verifyMaterialReferences(
   const ids = materialIdsFromDraft(draft);
   if (ids.length === 0) return null;
   if (!authenticated) {
-    return { success: false, error: "Sessão inválida." };
+    return authRequired();
   }
 
   const { data, error } = await authenticated.client
@@ -179,11 +82,12 @@ async function verifyMaterialReferences(
     .in("id", ids);
 
   if (error) {
-    return { success: false, error: `Não foi possível validar os materiais: ${error.message}` };
+    logDatabaseError("validate material references", error);
+    return { success: false, code: "SAVE_FAILED", message: "Não foi possível validar os materiais. Tente novamente." };
   }
 
   if ((data ?? []).length !== ids.length) {
-    return { success: false, error: "Um dos materiais selecionados já não existe." };
+    return { success: false, code: "NOT_FOUND", message: "Um dos materiais selecionados já não existe." };
   }
 
   return null;
@@ -191,7 +95,7 @@ async function verifyMaterialReferences(
 
 export async function createClientAction(formData: FormData): Promise<ActionResult> {
   const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) return { success: false, error: "Sessão inválida ou Supabase não configurado." };
+  if (!authenticated) return authRequired();
 
   const parsed = clientInputSchema.safeParse({
     name: stringValue(formData, "name"),
@@ -202,7 +106,7 @@ export async function createClientAction(formData: FormData): Promise<ActionResu
     locality: stringValue(formData, "locality"),
     notes: stringValue(formData, "notes"),
   });
-  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  if (!parsed.success) return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados.", fieldErrors: zodFieldErrors(parsed.error) };
 
   const data = {
     name: parsed.data.name,
@@ -219,17 +123,20 @@ export async function createClientAction(formData: FormData): Promise<ActionResu
     .insert(data)
     .select("id")
     .single();
-  if (error) return { success: false, error: `Não foi possível criar o cliente: ${error.message}` };
+  if (error) {
+    logDatabaseError("create client", error);
+    return { success: false, code: "SAVE_FAILED", message: "Não foi possível guardar o cliente." };
+  }
 
   revalidatePath("/backoffice");
   revalidatePath("/backoffice/clientes");
   revalidatePath("/backoffice/orcamentos/novo");
-  return { success: true, id: created.id };
+  return { success: true, id: created.id, message: "Cliente criado com sucesso." };
 }
 
 export async function updateClientAction(formData: FormData): Promise<ActionResult> {
   const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) return { success: false, error: "Sessão inválida ou Supabase não configurado." };
+  if (!authenticated) return authRequired();
 
   const id = stringValue(formData, "id");
   const parsedId = z.string().uuid().safeParse(id);
@@ -243,7 +150,7 @@ export async function updateClientAction(formData: FormData): Promise<ActionResu
     notes: stringValue(formData, "notes"),
   });
   if (!parsedId.success || !parsed.success) {
-    return { success: false, error: "Dados de cliente inválidos." };
+    return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados.", fieldErrors: parsed.success ? { id: "Cliente inválido." } : zodFieldErrors(parsed.error) };
   }
 
   const { error } = await authenticated.client
@@ -259,13 +166,16 @@ export async function updateClientAction(formData: FormData): Promise<ActionResu
     })
     .eq("id", id);
 
-  if (error) return { success: false, error: `Não foi possível atualizar o cliente: ${error.message}` };
+  if (error) {
+    logDatabaseError("update client", error);
+    return { success: false, code: "SAVE_FAILED", message: "Não foi possível guardar o cliente." };
+  }
 
   revalidatePath("/backoffice");
   revalidatePath("/backoffice/clientes");
   revalidatePath("/backoffice/orcamentos/novo");
   revalidatePath("/backoffice/orcamentos", "page");
-  return { success: true, id };
+  return { success: true, id, message: "Cliente atualizado." };
 }
 
 async function toggleActive(
@@ -273,10 +183,10 @@ async function toggleActive(
   id: string,
 ): Promise<ActionResult> {
   const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) return { success: false, error: "Sessão inválida ou Supabase não configurado." };
+  if (!authenticated) return authRequired();
 
   const parsedId = z.string().uuid().safeParse(id);
-  if (!parsedId.success) return { success: false, error: "Identificador inválido." };
+  if (!parsedId.success) return { success: false, code: "NOT_FOUND", message: "Registo não encontrado." };
 
   const { data, error } = await authenticated.client
     .from(table)
@@ -284,15 +194,21 @@ async function toggleActive(
     .eq("id", id)
     .maybeSingle();
 
-  if (error) return { success: false, error: `Não foi possível carregar o registo: ${error.message}` };
-  if (!data) return { success: false, error: "Registo não encontrado." };
+  if (error) {
+    logDatabaseError("load record state", error);
+    return { success: false, code: "SAVE_FAILED", message: "Não foi possível alterar o estado." };
+  }
+  if (!data) return { success: false, code: "NOT_FOUND", message: "Registo não encontrado." };
 
   const { error: updateError } = await authenticated.client
     .from(table)
     .update({ is_active: !data.is_active })
     .eq("id", id);
 
-  if (updateError) return { success: false, error: `Não foi possível alterar o estado: ${updateError.message}` };
+  if (updateError) {
+    logDatabaseError("toggle record state", updateError);
+    return { success: false, code: "SAVE_FAILED", message: "Não foi possível alterar o estado." };
+  }
 
   revalidatePath("/backoffice");
   revalidatePath(`/backoffice/${table === "clients" ? "clientes" : "materiais"}`);
@@ -315,17 +231,17 @@ function readMaterialInput(formData: FormData) {
     variant: stringValue(formData, "variant"),
     category: stringValue(formData, "category"),
     packageLabel: stringValue(formData, "packageLabel"),
-    packageQuantity: normalizeNullableDecimal(stringValue(formData, "packageQuantity")),
+    packageQuantity: stringValue(formData, "packageQuantity"),
     packageUnit: stringValue(formData, "packageUnit"),
     calculationType: stringValue(formData, "calculationType"),
-    consumption: normalizeNullableDecimal(stringValue(formData, "consumption")),
+    consumption: stringValue(formData, "consumption"),
     consumptionUnit: stringValue(formData, "consumptionUnit"),
     unit: stringValue(formData, "unit"),
-    baseUnitPrice: normalizeNullableDecimal(stringValue(formData, "baseUnitPrice")),
-    discountedUnitPrice: normalizeNullableDecimal(stringValue(formData, "discountedUnitPrice")),
-    basePackagePrice: normalizeNullableDecimal(stringValue(formData, "basePackagePrice")),
-    discountedPackagePrice: normalizeNullableDecimal(stringValue(formData, "discountedPackagePrice")),
-    discountRate: normalizePercentToRate(stringValue(formData, "discountRate")),
+    baseUnitPrice: stringValue(formData, "baseUnitPrice"),
+    discountedUnitPrice: stringValue(formData, "discountedUnitPrice"),
+    basePackagePrice: stringValue(formData, "basePackagePrice"),
+    discountedPackagePrice: stringValue(formData, "discountedPackagePrice"),
+    discountRate: stringValue(formData, "discountRate"),
     notes: stringValue(formData, "notes"),
   };
 }
@@ -347,52 +263,58 @@ function toMaterialRow(input: z.infer<typeof materialInputSchema>) {
     discounted_unit_price: input.discountedUnitPrice ? normalizeDecimal(input.discountedUnitPrice) : null,
     base_package_price: input.basePackagePrice ? normalizeDecimal(input.basePackagePrice) : null,
     discounted_package_price: input.discountedPackagePrice ? normalizeDecimal(input.discountedPackagePrice) : null,
-    discount_rate: input.discountRate ? normalizeDecimal(input.discountRate) : null,
+    discount_rate: normalizePercentToRate(input.discountRate),
     notes: input.notes || null,
   };
 }
 
 export async function createMaterialAction(formData: FormData): Promise<ActionResult> {
   const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) return { success: false, error: "Sessão inválida ou Supabase não configurado." };
+  if (!authenticated) return authRequired();
 
   const parsed = materialInputSchema.safeParse(readMaterialInput(formData));
-  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Dados inválidos." };
+  if (!parsed.success) return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados.", fieldErrors: zodFieldErrors(parsed.error) };
 
   const { data: created, error } = await authenticated.client
     .from("materials")
     .insert(toMaterialRow(parsed.data))
     .select("id")
     .single();
-  if (error) return { success: false, error: `Não foi possível criar o material: ${error.message}` };
+  if (error) {
+    logDatabaseError("create material", error);
+    return { success: false, code: "SAVE_FAILED", message: "Não foi possível guardar o material." };
+  }
 
   revalidatePath("/backoffice");
   revalidatePath("/backoffice/materiais");
   revalidatePath("/backoffice/orcamentos/novo");
-  return { success: true, id: created.id };
+  return { success: true, id: created.id, message: "Material criado com sucesso." };
 }
 
 export async function updateMaterialAction(formData: FormData): Promise<ActionResult> {
   const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) return { success: false, error: "Sessão inválida ou Supabase não configurado." };
+  if (!authenticated) return authRequired();
 
   const id = stringValue(formData, "id");
   const parsedId = z.string().uuid().safeParse(id);
   const parsed = materialInputSchema.safeParse(readMaterialInput(formData));
-  if (!parsedId.success || !parsed.success) return { success: false, error: "Dados de material inválidos." };
+  if (!parsedId.success || !parsed.success) return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados.", fieldErrors: parsed.success ? { id: "Material inválido." } : zodFieldErrors(parsed.error) };
 
   const { error } = await authenticated.client
     .from("materials")
     .update(toMaterialRow(parsed.data))
     .eq("id", id);
 
-  if (error) return { success: false, error: `Não foi possível atualizar o material: ${error.message}` };
+  if (error) {
+    logDatabaseError("update material", error);
+    return { success: false, code: "SAVE_FAILED", message: "Não foi possível guardar o material." };
+  }
 
   revalidatePath("/backoffice");
   revalidatePath("/backoffice/materiais");
   revalidatePath("/backoffice/orcamentos/novo");
   revalidatePath("/backoffice/orcamentos", "layout");
-  return { success: true, id };
+  return { success: true, id, message: "Material atualizado." };
 }
 
 function numericJson(value: string): string {
@@ -494,14 +416,16 @@ export type SaveQuoteResult = ActionResult & {
 
 export async function saveQuoteAction(input: unknown): Promise<SaveQuoteResult> {
   const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) return { success: false, error: "Sessão inválida ou Supabase não configurado." };
+  if (!authenticated) return authRequired();
 
   const parsed = quoteDraftSchema.safeParse(input);
-  if (!parsed.success) return { success: false, error: parsed.error.issues[0]?.message ?? "Dados do orçamento inválidos." };
+  if (!parsed.success) return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados e tente novamente.", fieldErrors: zodFieldErrors(parsed.error) };
 
   const draft = parsed.data as QuoteDraft;
-  const numberError = validateQuoteNumbers(draft);
-  if (numberError) return { success: false, error: numberError };
+  const fieldErrors = validateQuoteDraft(draft);
+  if (Object.keys(fieldErrors).length > 0) {
+    return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados e tente novamente.", fieldErrors };
+  }
 
   const referenceError = await verifyMaterialReferences(authenticated, draft);
   if (referenceError) return referenceError;
@@ -512,14 +436,16 @@ export async function saveQuoteAction(input: unknown): Promise<SaveQuoteResult> 
   });
 
   if (error || !data) {
+    if (error) logDatabaseError("save quote", error);
     return {
       success: false,
-      error: `Não foi possível guardar o orçamento: ${error?.message ?? "resposta vazia"}`,
+      code: "SAVE_FAILED",
+      message: "Não foi possível guardar o orçamento. Tente novamente.",
     };
   }
 
   revalidatePath("/backoffice");
   revalidatePath("/backoffice/orcamentos");
   revalidatePath(`/backoffice/orcamentos/${data.id}`);
-  return { success: true, quoteId: data.id, quoteNumber: data.quote_number };
+  return { success: true, quoteId: data.id, quoteNumber: data.quote_number, message: draft.id ? "Alterações guardadas." : `Orçamento ${data.quote_number} criado com sucesso.` };
 }

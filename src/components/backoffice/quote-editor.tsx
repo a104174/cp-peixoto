@@ -1,12 +1,15 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
   useState,
   useTransition,
   type FormEvent,
 } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Decimal from "decimal.js";
 
 import {
   createEmptyLaborDraft,
@@ -37,21 +40,25 @@ import {
   saveQuoteAction,
 } from "@/lib/backoffice/actions";
 import type { ClientSummary, MaterialSummary } from "@/lib/backoffice/data";
+import { parseLocaleDecimal, validateQuoteDraft, type FieldErrors } from "@/lib/backoffice/validation";
+import { ConfirmDialog } from "./confirm-dialog";
+import { FormFieldError } from "./form-field-error";
 
 type QuoteEditorProps = {
   initialDraft: QuoteDraft;
   clients: ClientSummary[];
   materials: MaterialSummary[];
+  successMessage?: string;
 };
 
 const surchargeBaseLabels: Record<QuoteSurchargeDraft["baseType"], string> = {
   subcontracts: "Subempreitadas",
   materials: "Materiais",
   labor: "Mão de obra",
-  equipment: "Equipamento",
-  labor_plus_equipment: "Mão de obra + equipamento",
+  equipment: "Viatura / equipamento",
+  labor_plus_equipment: "Mão de obra + viatura / equipamento",
   direct_costs: "Custos diretos",
-  direct_costs_plus_previous: "Custos diretos + anteriores",
+  direct_costs_plus_previous: "Custos diretos + acréscimos anteriores",
 };
 
 function materialLabel(material: MaterialSummary): string {
@@ -72,10 +79,19 @@ function updateArray<T extends { id: string }>(
   return rows.map((row) => (row.id === id ? { ...row, ...patch } : row));
 }
 
+function decimalLessThan(left: string, right: string): boolean {
+  try {
+    return new Decimal(left || 0).lt(new Decimal(right || 0));
+  } catch {
+    return false;
+  }
+}
+
 export function QuoteEditor({
   initialDraft,
   clients,
   materials,
+  successMessage,
 }: QuoteEditorProps) {
   const router = useRouter();
   const [draft, setDraft] = useState(initialDraft);
@@ -84,13 +100,43 @@ export function QuoteEditor({
     return client?.name ?? "";
   });
   const [clientOptionsOpen, setClientOptionsOpen] = useState(false);
+  const [clientActiveIndex, setClientActiveIndex] = useState(0);
   const [materialSearch, setMaterialSearch] = useState<Record<string, string>>({});
   const [activeMaterialRow, setActiveMaterialRow] = useState<string | null>(null);
+  const [materialActiveIndex, setMaterialActiveIndex] = useState(0);
   const [newClientOpen, setNewClientOpen] = useState(false);
-  const [feedback, setFeedback] = useState("");
+  const [quickClientErrors, setQuickClientErrors] = useState<FieldErrors>({});
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
+    successMessage ? { type: "success", message: successMessage } : null,
+  );
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(initialDraft));
+  const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
+  const [pendingRemoval, setPendingRemoval] = useState<{ title: string; description: string; remove: () => void } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const calculation = useMemo(() => calculateQuote(draft), [draft]);
+  const isDirty = JSON.stringify(draft) !== savedSnapshot;
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const beforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
+    const captureLink = (event: MouseEvent) => {
+      const link = (event.target as HTMLElement).closest("a[href]") as HTMLAnchorElement | null;
+      if (!link || link.target === "_blank" || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      const url = new URL(link.href, window.location.href);
+      if (url.origin !== window.location.origin || url.href === window.location.href) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setPendingNavigation(`${url.pathname}${url.search}${url.hash}`);
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    document.addEventListener("click", captureLink, true);
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+      document.removeEventListener("click", captureLink, true);
+    };
+  }, [isDirty]);
 
   const filteredClients = useMemo(() => {
     const query = clientQuery.trim().toLocaleLowerCase("pt-PT");
@@ -122,12 +168,30 @@ export function QuoteEditor({
     value: string,
   ) {
     setDraft((current) => ({ ...current, [field]: value }));
+    clearFieldError(field);
+  }
+
+  function clearFieldError(field: string) {
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  }
+
+  function errorProps(field: string) {
+    return {
+      "aria-describedby": fieldErrors[field] ? `${field.replaceAll(".", "-")}-error` : undefined,
+      "aria-invalid": Boolean(fieldErrors[field]),
+    };
   }
 
   function selectClient(client: ClientSummary) {
     setDraft((current) => ({ ...current, clientId: client.id }));
     setClientQuery(client.name);
     setClientOptionsOpen(false);
+    clearFieldError("description");
   }
 
   function clearClient() {
@@ -148,6 +212,8 @@ export function QuoteEditor({
       ...current,
       materials: updateArray(current.materials, id, patch),
     }));
+    const index = draft.materials.findIndex((line) => line.id === id);
+    Object.keys(patch).forEach((field) => clearFieldError(`materials.${index}.${field}`));
   }
 
   function selectMaterial(row: QuoteMaterialDraft, material: MaterialSummary) {
@@ -182,6 +248,7 @@ export function QuoteEditor({
           : line,
       ),
     }));
+    clearFieldError("area");
   }
 
   function removeMaterial(id: string) {
@@ -286,23 +353,45 @@ export function QuoteEditor({
   }
 
   function save() {
-    setFeedback("");
+    setFeedback(null);
+    const localErrors = validateQuoteDraft(draft);
+    if (Object.keys(localErrors).length > 0) {
+      setFieldErrors(localErrors);
+      setFeedback({ type: "error", message: "Não foi possível guardar o orçamento. Verifique os campos assinalados e tente novamente." });
+      document.querySelector<HTMLElement>("[aria-invalid='true']")?.focus();
+      return;
+    }
+    setFieldErrors({});
     startTransition(async () => {
       const result = await saveQuoteAction(draft);
       if (!result.success) {
-        setFeedback(result.error ?? "Não foi possível guardar o orçamento.");
+        if (result.code === "AUTH_REQUIRED") {
+          router.push("/backoffice/login?reason=session-expired");
+          return;
+        }
+        setFieldErrors(result.fieldErrors ?? {});
+        setFeedback({ type: "error", message: result.message });
         return;
       }
 
-      setFeedback(`Orçamento ${result.quoteNumber ?? ""} guardado.`);
+      setFeedback({ type: "success", message: result.message ?? "Alterações guardadas." });
       if (result.quoteId) {
+        const savedDraft = {
+          ...draft,
+          id: result.quoteId,
+          quoteNumber: result.quoteNumber ?? draft.quoteNumber,
+        };
         setDraft((current) => ({
           ...current,
           id: result.quoteId ?? current.id,
           quoteNumber: result.quoteNumber ?? current.quoteNumber,
         }));
-        router.push(`/backoffice/orcamentos/${result.quoteId}`);
-        router.refresh();
+        setSavedSnapshot(JSON.stringify(savedDraft));
+        if (!initialDraft.id) {
+          router.replace(`/backoffice/orcamentos/${result.quoteId}?saved=created`);
+        } else {
+          router.refresh();
+        }
       }
     });
   }
@@ -310,10 +399,16 @@ export function QuoteEditor({
   function createQuickClient(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
+    setQuickClientErrors({});
     startTransition(async () => {
       const result = await createClientAction(new FormData(form));
       if (!result.success) {
-        setFeedback(result.error ?? "Não foi possível criar o cliente.");
+        if (result.code === "AUTH_REQUIRED") {
+          router.push("/backoffice/login?reason=session-expired");
+          return;
+        }
+        setQuickClientErrors(result.fieldErrors ?? {});
+        setFeedback({ type: "error", message: result.message });
         return;
       }
 
@@ -323,7 +418,7 @@ export function QuoteEditor({
         setClientQuery(name);
       }
       setNewClientOpen(false);
-      setFeedback("Cliente criado e associado ao orçamento.");
+      setFeedback({ type: "success", message: "Cliente criado e associado ao orçamento." });
       form.reset();
       router.refresh();
     });
@@ -331,6 +426,12 @@ export function QuoteEditor({
 
   const warningItems = calculation.warnings.filter(
     (warning) => warning.severity !== "info",
+  );
+  const hasLoss = decimalLessThan(calculation.profit, "0") || decimalLessThan(calculation.realMargin, "0");
+  const belowDesiredMargin = Boolean(
+    draft.manualGross.trim() &&
+      draft.desiredMargin.trim() &&
+      decimalLessThan(calculation.realMargin, draft.desiredMargin),
   );
 
   return (
@@ -351,7 +452,7 @@ export function QuoteEditor({
       </div>
 
       {feedback ? (
-        <p aria-live="polite" className="bo-form-feedback bo-global-feedback">{feedback}</p>
+        <p aria-live="polite" className={`bo-form-feedback bo-global-feedback is-${feedback.type}`} role={feedback.type === "error" ? "alert" : "status"}>{feedback.message}</p>
       ) : null}
 
       <div className="bo-quote-layout">
@@ -381,9 +482,25 @@ export function QuoteEditor({
                     onChange={(event) => {
                       setClientQuery(event.target.value);
                       setClientOptionsOpen(true);
+                      setClientActiveIndex(0);
                       if (!event.target.value) clearClient();
                     }}
                     onFocus={() => setClientOptionsOpen(true)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Escape") setClientOptionsOpen(false);
+                      if (event.key === "ArrowDown") {
+                        event.preventDefault();
+                        setClientActiveIndex((index) => Math.min(index + 1, Math.max(filteredClients.length - 1, 0)));
+                      }
+                      if (event.key === "ArrowUp") {
+                        event.preventDefault();
+                        setClientActiveIndex((index) => Math.max(index - 1, 0));
+                      }
+                      if (event.key === "Enter" && clientOptionsOpen && filteredClients[clientActiveIndex]) {
+                        event.preventDefault();
+                        selectClient(filteredClients[clientActiveIndex]);
+                      }
+                    }}
                     placeholder="Pesquisar nome, email ou telefone"
                     role="combobox"
                     value={clientQuery}
@@ -394,11 +511,11 @@ export function QuoteEditor({
                     </button>
                   ) : null}
                 </div>
-                {clientOptionsOpen && filteredClients.length > 0 ? (
+                {clientOptionsOpen ? (
                   <div className="bo-combobox-options" id="quote-client-options" role="listbox">
-                    {filteredClients.map((client) => (
+                    {filteredClients.length ? filteredClients.map((client, index) => (
                       <button
-                        className="bo-combobox-option"
+                        className={`bo-combobox-option${index === clientActiveIndex ? " is-active" : ""}`}
                         key={client.id}
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => selectClient(client)}
@@ -409,7 +526,7 @@ export function QuoteEditor({
                         <strong>{client.name}</strong>
                         <small>{[client.email, client.phone].filter(Boolean).join(" · ") || "Sem contacto"}</small>
                       </button>
-                    ))}
+                    )) : <p className="bo-combobox-empty">Nenhum cliente encontrado.</p>}
                   </div>
                 ) : null}
                 <button className="bo-inline-create" onClick={() => setNewClientOpen((open) => !open)} type="button">
@@ -417,8 +534,8 @@ export function QuoteEditor({
                 </button>
                 {newClientOpen ? (
                   <form className="bo-quick-form" onSubmit={createQuickClient}>
-                    <label>Nome *<input className="bo-input" name="name" required /></label>
-                    <label>Email<input className="bo-input" name="email" type="email" /></label>
+                    <label>Nome *<input aria-describedby={quickClientErrors.name ? "quick-client-name-error" : undefined} aria-invalid={Boolean(quickClientErrors.name)} className="bo-input" name="name" required /><FormFieldError id="quick-client-name-error" message={quickClientErrors.name} /></label>
+                    <label>Email<input aria-describedby={quickClientErrors.email ? "quick-client-email-error" : undefined} aria-invalid={Boolean(quickClientErrors.email)} className="bo-input" name="email" type="email" /><FormFieldError id="quick-client-email-error" message={quickClientErrors.email} /></label>
                     <label>Telefone<input className="bo-input" name="phone" /></label>
                     <button className="bo-button bo-button-secondary" disabled={isPending} type="submit">Criar e associar</button>
                   </form>
@@ -430,39 +547,48 @@ export function QuoteEditor({
               </label>
               <label>
                 Data
-                <input className="bo-input" onChange={(event) => updateHeader("quoteDate", event.target.value)} type="date" value={draft.quoteDate} />
+                <input {...errorProps("quoteDate")} className="bo-input" onChange={(event) => updateHeader("quoteDate", event.target.value)} type="date" value={draft.quoteDate} />
+                <FormFieldError id="quoteDate-error" message={fieldErrors.quoteDate} />
               </label>
               <label className="bo-field-wide">
                 Descrição
-                <textarea className="bo-input bo-textarea" onChange={(event) => updateHeader("description", event.target.value)} rows={2} value={draft.description} />
+                <textarea {...errorProps("description")} className="bo-input bo-textarea" onChange={(event) => updateHeader("description", event.target.value)} rows={2} value={draft.description} />
+                <FormFieldError id="description-error" message={fieldErrors.description} />
               </label>
               <label>
                 Área
-                <input className="bo-input" inputMode="decimal" onChange={(event) => updateArea(event.target.value)} placeholder="ex. 600" value={draft.area} />
+                <input {...errorProps("area")} className="bo-input" inputMode="decimal" onChange={(event) => updateArea(event.target.value)} placeholder="ex. 600" value={draft.area} />
+                <FormFieldError id="area-error" message={fieldErrors.area} />
               </label>
               <label>
                 Unidade
-                <input className="bo-input" onChange={(event) => updateHeader("areaUnit", event.target.value)} value={draft.areaUnit} />
+                <input {...errorProps("areaUnit")} className="bo-input" onChange={(event) => updateHeader("areaUnit", event.target.value)} value={draft.areaUnit} />
+                <FormFieldError id="areaUnit-error" message={fieldErrors.areaUnit} />
               </label>
               <label>
                 Preço/hora (CHF)
-                <input className="bo-input" inputMode="decimal" onChange={(event) => updateHeader("hourlyRate", event.target.value)} value={draft.hourlyRate} />
+                <input {...errorProps("hourlyRate")} className="bo-input" inputMode="decimal" onChange={(event) => updateHeader("hourlyRate", event.target.value)} value={draft.hourlyRate} />
+                <FormFieldError id="hourlyRate-error" message={fieldErrors.hourlyRate} />
               </label>
               <label>
                 Margem desejada (%)
-                <input className="bo-input" inputMode="decimal" onChange={(event) => updateHeader("desiredMargin", decimalInputToRate(event.target.value))} value={rateToDecimalInput(draft.desiredMargin)} />
+                <input {...errorProps("desiredMargin")} className="bo-input" inputMode="decimal" onChange={(event) => updateHeader("desiredMargin", decimalInputToRate(event.target.value))} value={rateToDecimalInput(draft.desiredMargin)} />
+                <FormFieldError id="desiredMargin-error" message={fieldErrors.desiredMargin} />
               </label>
               <label>
                 Desconto comercial (%)
-                <input className="bo-input" inputMode="decimal" onChange={(event) => updateHeader("commercialDiscount", decimalInputToRate(event.target.value))} value={rateToDecimalInput(draft.commercialDiscount)} />
+                <input {...errorProps("commercialDiscount")} className="bo-input" inputMode="decimal" onChange={(event) => updateHeader("commercialDiscount", decimalInputToRate(event.target.value))} value={rateToDecimalInput(draft.commercialDiscount)} />
+                <FormFieldError id="commercialDiscount-error" message={fieldErrors.commercialDiscount} />
               </label>
               <label>
                 Skonto (%)
-                <input className="bo-input" inputMode="decimal" onChange={(event) => updateHeader("skonto", decimalInputToRate(event.target.value))} value={rateToDecimalInput(draft.skonto)} />
+                <input {...errorProps("skonto")} className="bo-input" inputMode="decimal" onChange={(event) => updateHeader("skonto", decimalInputToRate(event.target.value))} value={rateToDecimalInput(draft.skonto)} />
+                <FormFieldError id="skonto-error" message={fieldErrors.skonto} />
               </label>
               <label>
                 Dedução fixa (CHF)
-                <input className="bo-input" inputMode="decimal" onChange={(event) => updateHeader("fixedDeduction", event.target.value)} value={draft.fixedDeduction} />
+                <input {...errorProps("fixedDeduction")} className="bo-input" inputMode="decimal" onChange={(event) => updateHeader("fixedDeduction", event.target.value)} value={draft.fixedDeduction} />
+                <FormFieldError id="fixedDeduction-error" message={fieldErrors.fixedDeduction} />
               </label>
             </div>
           </section>
@@ -473,11 +599,11 @@ export function QuoteEditor({
                 <p className="bo-eyebrow">2 · Materiais</p>
                 <h2 id="materials-heading">Materiais</h2>
               </div>
-              <button className="bo-button bo-button-secondary" onClick={addMaterial} type="button">+ Adicionar linha</button>
+              <button className="bo-button bo-button-secondary" onClick={addMaterial} type="button">+ Adicionar material</button>
             </div>
             <p className="bo-section-help">O preço sugerido usa o valor com desconto do catálogo. Os campos da linha são overrides apenas deste orçamento.</p>
             {draft.materials.length === 0 ? (
-              <div className="bo-inline-empty">Ainda não adicionou materiais.</div>
+              <div className="bo-inline-empty"><strong>Ainda não adicionou materiais.</strong><span>Pesquise no catálogo para adicionar os materiais utilizados nesta obra.</span><button className="bo-button bo-button-secondary" onClick={addMaterial} type="button">+ Adicionar material</button></div>
             ) : (
               <div className="bo-line-list">
                 {draft.materials.map((line, index) => {
@@ -498,7 +624,11 @@ export function QuoteEditor({
                     <article className="bo-line-card" key={line.id}>
                       <div className="bo-line-card-heading">
                         <strong>Linha {index + 1}</strong>
-                        <button className="bo-link-button bo-link-danger" onClick={() => removeMaterial(line.id)} type="button">Remover</button>
+                        <button className="bo-button bo-button-remove" onClick={() => {
+                          const populated = Boolean(line.materialNameSnapshot || line.consumptionOrQuantity || line.unitPrice);
+                          if (populated) setPendingRemoval({ title: "Remover este material?", description: "Os dados desta linha serão perdidos.", remove: () => removeMaterial(line.id) });
+                          else removeMaterial(line.id);
+                        }} type="button">Remover</button>
                       </div>
                       <div className="bo-line-grid bo-material-line-grid">
                         <div className="bo-field bo-field-wide bo-combobox">
@@ -507,12 +637,14 @@ export function QuoteEditor({
                             aria-autocomplete="list"
                             aria-controls={`material-options-${line.id}`}
                             aria-expanded={activeMaterialRow === line.id && options.length > 0}
+                            aria-invalid={Boolean(fieldErrors[`materials.${index}.materialNameSnapshot`])}
                             className="bo-input"
                             id={`material-${line.id}`}
                             onBlur={() => window.setTimeout(() => setActiveMaterialRow(null), 120)}
                             onChange={(event) => {
                               setMaterialSearch((current) => ({ ...current, [line.id]: event.target.value }));
                               setActiveMaterialRow(line.id);
+                              setMaterialActiveIndex(0);
                               if (!event.target.value) {
                                 patchMaterial(line.id, {
                                   materialId: null,
@@ -531,17 +663,34 @@ export function QuoteEditor({
                             }}
                             onFocus={() => {
                               setActiveMaterialRow(line.id);
+                              setMaterialActiveIndex(0);
                               setMaterialSearch((current) => ({ ...current, [line.id]: current[line.id] ?? line.materialNameSnapshot }));
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === "Escape") setActiveMaterialRow(null);
+                              if (event.key === "ArrowDown") {
+                                event.preventDefault();
+                                setMaterialActiveIndex((active) => Math.min(active + 1, Math.max(options.length - 1, 0)));
+                              }
+                              if (event.key === "ArrowUp") {
+                                event.preventDefault();
+                                setMaterialActiveIndex((active) => Math.max(active - 1, 0));
+                              }
+                              if (event.key === "Enter" && activeMaterialRow === line.id && options[materialActiveIndex]) {
+                                event.preventDefault();
+                                selectMaterial(line, options[materialActiveIndex]);
+                              }
                             }}
                             placeholder="Pesquisar material…"
                             role="combobox"
                             value={search}
                           />
-                          {activeMaterialRow === line.id && options.length > 0 ? (
+                          <FormFieldError id={`materials-${index}-materialNameSnapshot-error`} message={fieldErrors[`materials.${index}.materialNameSnapshot`]} />
+                          {activeMaterialRow === line.id ? (
                             <div className="bo-combobox-options" id={`material-options-${line.id}`} role="listbox">
-                              {options.map((material) => (
+                              {options.length ? options.map((material, optionIndex) => (
                                 <button
-                                  className="bo-combobox-option"
+                                  className={`bo-combobox-option${optionIndex === materialActiveIndex ? " is-active" : ""}`}
                                   key={material.id}
                                   onMouseDown={(event) => event.preventDefault()}
                                   onClick={() => selectMaterial(line, material)}
@@ -549,12 +698,12 @@ export function QuoteEditor({
                                   aria-selected={material.id === line.materialId}
                                   type="button"
                                 >
-                                  <strong>{materialLabel(material)}</strong>
+                                  <strong>{material.name}{material.variant ? ` · ${material.variant}` : ""}</strong>
                                   <small>
-                                    Consumo: {material.consumption ? `${material.consumption} ${material.consumption_unit ?? ""}` : "manual"} · Sugerido: {formatMoney(materialSuggestedPrice(material))}
+                                    {material.package_label ?? "Sem embalagem"} · {material.consumption ? `${material.consumption} ${material.consumption_unit ?? ""}` : "Consumo manual"} · {formatMoney(materialSuggestedPrice(material))}/{material.unit}
                                   </small>
                                 </button>
-                              ))}
+                              )) : <div className="bo-combobox-empty"><p>Nenhum material encontrado.</p><Link href="/backoffice/materiais">Gerir materiais</Link></div>}
                             </div>
                           ) : null}
                         </div>
@@ -578,20 +727,24 @@ export function QuoteEditor({
                         </label>
                         <label>
                           Consumo / quantidade
-                          <input className="bo-input" inputMode="decimal" onChange={(event) => patchMaterial(line.id, { consumptionOrQuantity: event.target.value })} value={line.consumptionOrQuantity} />
+                          <input {...errorProps(`materials.${index}.consumptionOrQuantity`)} className="bo-input" inputMode="decimal" onChange={(event) => patchMaterial(line.id, { consumptionOrQuantity: event.target.value })} value={line.consumptionOrQuantity} />
+                          <FormFieldError id={`materials-${index}-consumptionOrQuantity-error`} message={fieldErrors[`materials.${index}.consumptionOrQuantity`]} />
                         </label>
                         <label>
                           Unidade
-                          <input className="bo-input" onChange={(event) => patchMaterial(line.id, { unit: event.target.value })} value={line.unit} />
+                          <input {...errorProps(`materials.${index}.unit`)} className="bo-input" onChange={(event) => patchMaterial(line.id, { unit: event.target.value })} value={line.unit} />
+                          <FormFieldError id={`materials-${index}-unit-error`} message={fieldErrors[`materials.${index}.unit`]} />
                         </label>
                         <label>
                           Preço unitário (CHF)
-                          <input className="bo-input" inputMode="decimal" onChange={(event) => patchMaterial(line.id, { unitPrice: event.target.value })} value={line.unitPrice} />
+                          <input {...errorProps(`materials.${index}.unitPrice`)} className="bo-input" inputMode="decimal" onChange={(event) => patchMaterial(line.id, { unitPrice: event.target.value })} value={line.unitPrice} />
+                          <FormFieldError id={`materials-${index}-unitPrice-error`} message={fieldErrors[`materials.${index}.unitPrice`]} />
                         </label>
                         <label>
                           Área / fator
-                          <input className={`bo-input${line.areaFactorOverridden ? " is-overridden" : ""}`} inputMode="decimal" onChange={(event) => patchMaterial(line.id, { areaFactor: event.target.value, areaFactorOverridden: true })} value={line.areaFactor} />
-                          {line.areaFactorOverridden ? <small className="bo-field-note">Override manual</small> : null}
+                          <input {...errorProps(`materials.${index}.areaFactor`)} className={`bo-input${line.areaFactorOverridden ? " is-overridden" : ""}`} inputMode="decimal" onChange={(event) => patchMaterial(line.id, { areaFactor: event.target.value, areaFactorOverridden: true })} value={line.areaFactor} />
+                          <small className="bo-field-note">{line.areaFactorOverridden ? "Valor ajustado apenas para este material." : "Por defeito utiliza a área da obra. Pode ajustar este valor apenas para este material."}</small>
+                          <FormFieldError id={`materials-${index}-areaFactor-error`} message={fieldErrors[`materials.${index}.areaFactor`]} />
                         </label>
                         <label className="bo-field-wide">
                           Notas
@@ -618,17 +771,21 @@ export function QuoteEditor({
               </div>
               <button className="bo-button bo-button-secondary" onClick={addLabor} type="button">+ Adicionar linha</button>
             </div>
-            {draft.labor.length === 0 ? <div className="bo-inline-empty">Ainda não adicionou mão de obra.</div> : null}
+            {draft.labor.length === 0 ? <div className="bo-inline-empty"><strong>Ainda não adicionou mão de obra.</strong><button className="bo-button bo-button-secondary" onClick={addLabor} type="button">+ Adicionar linha</button></div> : null}
             {draft.labor.map((line, index) => {
               const lineResult = calculation.labor.lines[index];
               return (
                 <article className="bo-line-card" key={line.id}>
-                  <div className="bo-line-card-heading"><strong>Linha {index + 1}</strong><button className="bo-link-button bo-link-danger" onClick={() => removeLabor(line.id)} type="button">Remover</button></div>
+                  <div className="bo-line-card-heading"><strong>Linha {index + 1}</strong><button className="bo-button bo-button-remove" onClick={() => {
+                    const populated = Boolean(line.label || line.people || line.workHoursPerPerson || line.travelHoursPerPerson);
+                    if (populated) setPendingRemoval({ title: "Remover esta linha de mão de obra?", description: "Os dados desta linha serão perdidos.", remove: () => removeLabor(line.id) });
+                    else removeLabor(line.id);
+                  }} type="button">Remover</button></div>
                   <div className="bo-line-grid">
-                    <label className="bo-field-wide">Descrição<input className="bo-input" onChange={(event) => patchLabor(line.id, { label: event.target.value })} value={line.label} /></label>
-                    <label>Pessoas<input className="bo-input" inputMode="decimal" onChange={(event) => patchLabor(line.id, { people: event.target.value })} value={line.people} /></label>
-                    <label>Horas trabalho / pessoa<input className="bo-input" inputMode="decimal" onChange={(event) => patchLabor(line.id, { workHoursPerPerson: event.target.value })} value={line.workHoursPerPerson} /></label>
-                    <label>Horas deslocação / pessoa<input className="bo-input" inputMode="decimal" onChange={(event) => patchLabor(line.id, { travelHoursPerPerson: event.target.value })} value={line.travelHoursPerPerson} /></label>
+                    <label className="bo-field-wide">Descrição<input {...errorProps(`labor.${index}.label`)} className="bo-input" onChange={(event) => { patchLabor(line.id, { label: event.target.value }); clearFieldError(`labor.${index}.label`); }} value={line.label} /><FormFieldError id={`labor-${index}-label-error`} message={fieldErrors[`labor.${index}.label`]} /></label>
+                    <label>Pessoas<input {...errorProps(`labor.${index}.people`)} className="bo-input" inputMode="decimal" onChange={(event) => { patchLabor(line.id, { people: event.target.value }); clearFieldError(`labor.${index}.people`); }} value={line.people} /><FormFieldError id={`labor-${index}-people-error`} message={fieldErrors[`labor.${index}.people`]} /></label>
+                    <label>Horas trabalho / pessoa<input {...errorProps(`labor.${index}.workHoursPerPerson`)} className="bo-input" inputMode="decimal" onChange={(event) => { patchLabor(line.id, { workHoursPerPerson: event.target.value }); clearFieldError(`labor.${index}.workHoursPerPerson`); }} value={line.workHoursPerPerson} /><FormFieldError id={`labor-${index}-workHoursPerPerson-error`} message={fieldErrors[`labor.${index}.workHoursPerPerson`]} /></label>
+                    <label>Horas deslocação / pessoa<input {...errorProps(`labor.${index}.travelHoursPerPerson`)} className="bo-input" inputMode="decimal" onChange={(event) => { patchLabor(line.id, { travelHoursPerPerson: event.target.value }); clearFieldError(`labor.${index}.travelHoursPerPerson`); }} value={line.travelHoursPerPerson} /><FormFieldError id={`labor-${index}-travelHoursPerPerson-error`} message={fieldErrors[`labor.${index}.travelHoursPerPerson`]} /></label>
                     <label>Nota<input className="bo-input" onChange={(event) => patchLabor(line.id, { note: event.target.value })} value={line.note} /></label>
                     <div className="bo-readonly-metrics"><span>Horas totais</span><strong>{formatNumber(lineResult?.totalHours)}</strong></div>
                     <div className="bo-readonly-metrics"><span>Custo</span><strong>{formatMoney(lineResult?.costTotal)}</strong></div>
@@ -642,25 +799,33 @@ export function QuoteEditor({
           <SimpleLinesSection
             title="4 · Subempreitadas"
             headingId="subcontracts-heading"
-            empty="Ainda não adicionou subempreitadas."
+            empty="Sem subempreitadas neste orçamento."
             lines={draft.subcontracts}
             lineTotals={calculation.subcontracts.lineTotals}
             total={calculation.subcontracts.total}
             add={() => addSimpleLine("subcontracts")}
             remove={(id) => removeSimpleLine("subcontracts", id)}
             patch={(id, patch) => patchSimpleLine("subcontracts", id, patch)}
+            group="subcontracts"
+            fieldErrors={fieldErrors}
+            clearFieldError={clearFieldError}
+            confirmRemove={(line, remove) => setPendingRemoval({ title: "Remover esta subempreitada?", description: "Os dados desta linha serão perdidos.", remove })}
           />
 
           <SimpleLinesSection
             title="5 · Viatura / equipamento"
             headingId="equipment-heading"
-            empty="Ainda não adicionou equipamento."
+            empty="Sem viaturas ou equipamento neste orçamento."
             lines={draft.equipment}
             lineTotals={calculation.equipment.lineTotals}
             total={calculation.equipment.total}
             add={() => addSimpleLine("equipment")}
             remove={(id) => removeSimpleLine("equipment", id)}
             patch={(id, patch) => patchSimpleLine("equipment", id, patch)}
+            group="equipment"
+            fieldErrors={fieldErrors}
+            clearFieldError={clearFieldError}
+            confirmRemove={(line, remove) => setPendingRemoval({ title: "Remover esta viatura ou equipamento?", description: "Os dados desta linha serão perdidos.", remove })}
           />
 
           <section className="bo-card bo-section" aria-labelledby="surcharges-heading">
@@ -669,21 +834,26 @@ export function QuoteEditor({
                 <p className="bo-eyebrow">6 · Acréscimos</p>
                 <h2 id="surcharges-heading">Acréscimos</h2>
               </div>
-              <button className="bo-button bo-button-secondary" onClick={addSurcharge} type="button">+ Adicionar linha</button>
+              <button className="bo-button bo-button-secondary" onClick={addSurcharge} type="button">+ Adicionar acréscimo</button>
             </div>
             <p className="bo-section-help">As linhas são aplicadas sequencialmente. A base “custos diretos + anteriores” inclui os acréscimos anteriores.</p>
-            {draft.surcharges.length === 0 ? <div className="bo-inline-empty">Ainda não adicionou acréscimos.</div> : null}
+            {draft.surcharges.length === 0 ? <div className="bo-inline-empty"><strong>Sem acréscimos neste orçamento.</strong><span>Adicione apenas quando forem necessários para esta obra.</span><button className="bo-button bo-button-secondary" onClick={addSurcharge} type="button">+ Adicionar acréscimo</button></div> : null}
             <div className="bo-surcharge-list">
               {draft.surcharges.map((line, index) => {
                 const result = calculation.surcharges.lines[index];
                 return (
                   <article className="bo-surcharge-row" key={line.id}>
-                    <label>Nome<input className="bo-input" onChange={(event) => patchSurcharge(line.id, { name: event.target.value })} value={line.name} /></label>
+                    <label>Nome<input {...errorProps(`surcharges.${index}.name`)} className="bo-input" onChange={(event) => { patchSurcharge(line.id, { name: event.target.value }); clearFieldError(`surcharges.${index}.name`); }} value={line.name} /><FormFieldError id={`surcharges-${index}-name-error`} message={fieldErrors[`surcharges.${index}.name`]} /></label>
                     <label>Base<select className="bo-input" onChange={(event) => patchSurcharge(line.id, { baseType: event.target.value as QuoteSurchargeDraft["baseType"] })} value={line.baseType}>{Object.entries(surchargeBaseLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-                    <label>Taxa (%)<input className="bo-input" inputMode="decimal" onChange={(event) => patchSurcharge(line.id, { rate: decimalInputToRate(event.target.value) })} value={rateToDecimalInput(line.rate)} /></label>
-                    <div className="bo-readonly-metrics"><span>Base</span><strong>{formatMoney(result?.baseAmount)}</strong></div>
-                    <div className="bo-readonly-metrics"><span>Valor</span><strong>{formatMoney(result?.amount)}</strong></div>
-                    <button className="bo-link-button bo-link-danger bo-surcharge-remove" onClick={() => removeSurcharge(line.id)} type="button">Remover</button>
+                    <label>Taxa (%)<input {...errorProps(`surcharges.${index}.rate`)} className="bo-input" inputMode="decimal" onChange={(event) => { patchSurcharge(line.id, { rate: decimalInputToRate(event.target.value) }); clearFieldError(`surcharges.${index}.rate`); }} value={rateToDecimalInput(line.rate)} /><FormFieldError id={`surcharges-${index}-rate-error`} message={fieldErrors[`surcharges.${index}.rate`]} /></label>
+                    <div className="bo-readonly-metrics"><span>Base calculada</span><strong>{formatMoney(result?.baseAmount)}</strong></div>
+                    <div className="bo-readonly-metrics"><span>Valor do acréscimo</span><strong>{formatMoney(result?.amount)}</strong></div>
+                    <button className="bo-button bo-button-remove bo-surcharge-remove" onClick={() => {
+                      const populated = Boolean(line.name || line.rate);
+                      if (populated) setPendingRemoval({ title: "Remover este acréscimo?", description: "Os dados desta linha serão perdidos.", remove: () => removeSurcharge(line.id) });
+                      else removeSurcharge(line.id);
+                    }} type="button">Remover</button>
+                    {line.baseType === "direct_costs_plus_previous" ? <small className="bo-surcharge-helper">Inclui os acréscimos das linhas anteriores.</small> : null}
                   </article>
                 );
               })}
@@ -705,8 +875,9 @@ export function QuoteEditor({
               </label>
               <label>
                 Preço manual (CHF)
-                <input className={`bo-input${draft.manualGross.trim() ? " is-overridden" : ""}`} inputMode="decimal" onChange={(event) => updateHeader("manualGross", event.target.value)} placeholder="Opcional" value={draft.manualGross} />
-                {draft.manualGross.trim() ? <small className="bo-field-note">Override ativo</small> : null}
+                <input {...errorProps("manualGross")} className={`bo-input${draft.manualGross.trim() ? " is-overridden" : ""}`} inputMode="decimal" onChange={(event) => updateHeader("manualGross", event.target.value)} placeholder="Opcional" value={draft.manualGross} />
+                {draft.manualGross.trim() ? <small className="bo-field-note bo-manual-active">Preço manual ativo</small> : null}
+                <FormFieldError id="manualGross-error" message={fieldErrors.manualGross} />
               </label>
               <label>
                 Preço utilizado (CHF)
@@ -726,24 +897,50 @@ export function QuoteEditor({
                 <h2 id="summary-heading">Resumo do orçamento</h2>
               </div>
             </div>
-            <SummaryMetrics calculation={calculation} />
+            <SummaryMetrics calculation={calculation} manualGross={draft.manualGross} />
             {warningItems.length > 0 ? (
               <div className="bo-warning-list" role="status">
                 {warningItems.map((warning) => <WarningItem key={`${warning.code}-${warning.field ?? ""}`} warning={warning} />)}
               </div>
             ) : null}
+            {hasLoss ? <p className="bo-warning bo-warning-error">Este orçamento apresenta prejuízo com os valores atuais.</p> : null}
+            {!hasLoss && belowDesiredMargin ? <p className="bo-warning">A margem real está abaixo da margem pretendida.</p> : null}
           </section>
         </div>
 
         <aside className="bo-quote-summary bo-card" aria-label="Resumo financeiro">
           <p className="bo-eyebrow">Resumo financeiro</p>
           <h2>{draft.quoteNumber ?? "Novo orçamento"}</h2>
-          <SummaryMetrics calculation={calculation} compact />
+          <SummaryMetrics calculation={calculation} compact manualGross={draft.manualGross} />
           <button className="bo-button bo-button-primary bo-summary-save" disabled={isPending} onClick={save} type="button">
             {isPending ? "A guardar…" : "Guardar orçamento"}
           </button>
         </aside>
       </div>
+      <ConfirmDialog
+        confirmLabel="Sair sem guardar"
+        description="Se sair agora, essas alterações serão perdidas."
+        onCancel={() => setPendingNavigation(null)}
+        onConfirm={() => {
+          if (!pendingNavigation) return;
+          setSavedSnapshot(JSON.stringify(draft));
+          router.push(pendingNavigation);
+          setPendingNavigation(null);
+        }}
+        open={Boolean(pendingNavigation)}
+        title="Tem alterações por guardar"
+      />
+      <ConfirmDialog
+        confirmLabel="Remover"
+        description={pendingRemoval?.description ?? ""}
+        onCancel={() => setPendingRemoval(null)}
+        onConfirm={() => {
+          pendingRemoval?.remove();
+          setPendingRemoval(null);
+        }}
+        open={Boolean(pendingRemoval)}
+        title={pendingRemoval?.title ?? "Remover linha?"}
+      />
     </div>
   );
 }
@@ -758,6 +955,10 @@ function SimpleLinesSection({
   add,
   remove,
   patch,
+  group,
+  fieldErrors,
+  clearFieldError,
+  confirmRemove,
 }: {
   title: string;
   headingId: string;
@@ -768,6 +969,10 @@ function SimpleLinesSection({
   add: () => void;
   remove: (id: string) => void;
   patch: (id: string, patch: Partial<QuoteLineDraft>) => void;
+  group: "subcontracts" | "equipment";
+  fieldErrors: FieldErrors;
+  clearFieldError: (field: string) => void;
+  confirmRemove: (line: QuoteLineDraft, remove: () => void) => void;
 }) {
   return (
     <section className="bo-card bo-section" aria-labelledby={headingId}>
@@ -775,15 +980,19 @@ function SimpleLinesSection({
         <div><p className="bo-eyebrow">{title}</p><h2 id={headingId}>{title.slice(4)}</h2></div>
         <button className="bo-button bo-button-secondary" onClick={add} type="button">+ Adicionar linha</button>
       </div>
-      {lines.length === 0 ? <div className="bo-inline-empty">{empty}</div> : null}
+      {lines.length === 0 ? <div className="bo-inline-empty"><strong>{empty}</strong><button className="bo-button bo-button-secondary" onClick={add} type="button">+ Adicionar linha</button></div> : null}
       {lines.map((line, index) => (
         <article className="bo-line-card" key={line.id}>
-          <div className="bo-line-card-heading"><strong>Linha {index + 1}</strong><button className="bo-link-button bo-link-danger" onClick={() => remove(line.id)} type="button">Remover</button></div>
+          <div className="bo-line-card-heading"><strong>Linha {index + 1}</strong><button className="bo-button bo-button-remove" onClick={() => {
+            const populated = Boolean(line.description || line.quantity || line.unitPrice || line.note);
+            if (populated) confirmRemove(line, () => remove(line.id));
+            else remove(line.id);
+          }} type="button">Remover</button></div>
           <div className="bo-line-grid">
-            <label className="bo-field-wide">Descrição<input className="bo-input" onChange={(event) => patch(line.id, { description: event.target.value })} value={line.description} /></label>
-            <label>Quantidade<input className="bo-input" inputMode="decimal" onChange={(event) => patch(line.id, { quantity: event.target.value })} value={line.quantity} /></label>
+            <label className="bo-field-wide">Descrição<input aria-describedby={fieldErrors[`${group}.${index}.description`] ? `${group}-${index}-description-error` : undefined} aria-invalid={Boolean(fieldErrors[`${group}.${index}.description`])} className="bo-input" onChange={(event) => { patch(line.id, { description: event.target.value }); clearFieldError(`${group}.${index}.description`); }} value={line.description} /><FormFieldError id={`${group}-${index}-description-error`} message={fieldErrors[`${group}.${index}.description`]} /></label>
+            <label>Quantidade<input aria-describedby={fieldErrors[`${group}.${index}.quantity`] ? `${group}-${index}-quantity-error` : undefined} aria-invalid={Boolean(fieldErrors[`${group}.${index}.quantity`])} className="bo-input" inputMode="decimal" onChange={(event) => { patch(line.id, { quantity: event.target.value }); clearFieldError(`${group}.${index}.quantity`); }} value={line.quantity} /><FormFieldError id={`${group}-${index}-quantity-error`} message={fieldErrors[`${group}.${index}.quantity`]} /></label>
             <label>Unidade<input className="bo-input" onChange={(event) => patch(line.id, { unit: event.target.value })} value={line.unit} /></label>
-            <label>Preço unitário (CHF)<input className="bo-input" inputMode="decimal" onChange={(event) => patch(line.id, { unitPrice: event.target.value })} value={line.unitPrice} /></label>
+            <label>Preço unitário (CHF)<input aria-describedby={fieldErrors[`${group}.${index}.unitPrice`] ? `${group}-${index}-unitPrice-error` : undefined} aria-invalid={Boolean(fieldErrors[`${group}.${index}.unitPrice`])} className="bo-input" inputMode="decimal" onChange={(event) => { patch(line.id, { unitPrice: event.target.value }); clearFieldError(`${group}.${index}.unitPrice`); }} value={line.unitPrice} /><FormFieldError id={`${group}-${index}-unitPrice-error`} message={fieldErrors[`${group}.${index}.unitPrice`]} /></label>
             <label>Nota<input className="bo-input" onChange={(event) => patch(line.id, { note: event.target.value })} value={line.note} /></label>
             <div className="bo-readonly-metrics"><span>Total</span><strong>{formatMoney(lineTotals[index])}</strong></div>
           </div>
@@ -797,38 +1006,55 @@ function SimpleLinesSection({
 function SummaryMetrics({
   calculation,
   compact = false,
+  manualGross,
 }: {
   calculation: ReturnType<typeof calculateQuote>;
   compact?: boolean;
+  manualGross: string;
 }) {
-  const metrics = [
-    ["Materiais", formatMoney(calculation.materials.total)],
-    ["Mão de obra", formatMoney(calculation.labor.total)],
-    ["Subempreitadas", formatMoney(calculation.subcontracts.total)],
-    ["Equipamento", formatMoney(calculation.equipment.total)],
-    ["Custos diretos", formatMoney(calculation.directCosts)],
-    ["Acréscimos", formatMoney(calculation.surcharges.total)],
-    ["Custo total", formatMoney(calculation.totalCost)],
-    ["Preço recomendado", formatMoney(calculation.recommendedGross)],
-    ["Preço utilizado", formatMoney(calculation.grossUsed)],
-    ["Valor líquido", formatMoney(calculation.netValue)],
-    ["Lucro", formatMoney(calculation.profit)],
-    ["Margem real", formatPercent(calculation.realMargin)],
-    ["Horas totais", `${formatNumber(calculation.totalHours)} h`],
-    ["Valor líquido / m²", formatMoney(calculation.netPerM2)],
-    ["Deduções fixas / m²", formatMoney(calculation.fixedDeductionPerM2)],
-    ["Valor líquido / hora", formatMoney(calculation.netPerHour)],
+  const groups: Array<{ title: string; metrics: Array<[string, string, string?]> }> = [
+    { title: "Custos", metrics: [
+      ["Materiais", formatMoney(calculation.materials.total)],
+      ["Mão de obra", formatMoney(calculation.labor.total)],
+      ["Subempreitadas", formatMoney(calculation.subcontracts.total)],
+      ["Viatura / equipamento", formatMoney(calculation.equipment.total)],
+      ["Custos diretos", formatMoney(calculation.directCosts)],
+      ["Acréscimos", formatMoney(calculation.surcharges.total)],
+      ["Custo total", formatMoney(calculation.totalCost), "is-emphasis"],
+    ] },
+    { title: "Venda", metrics: [
+      ["Preço recomendado", formatMoney(calculation.recommendedGross)],
+      ["Preço manual", parseLocaleDecimal(manualGross) ? formatMoney(manualGross) : "—"],
+      ["Preço utilizado", formatMoney(calculation.grossUsed), "is-emphasis"],
+      ["Valor líquido", formatMoney(calculation.netValue), "is-emphasis"],
+    ] },
+    { title: "Rentabilidade", metrics: [
+      ["Lucro", formatMoney(calculation.profit), "is-emphasis"],
+      ["Margem real", formatPercent(calculation.realMargin), "is-emphasis"],
+    ] },
+    { title: "Indicadores", metrics: [
+      ["Horas", `${formatNumber(calculation.totalHours)} h`],
+      ["Valor líquido / m²", formatMoney(calculation.netPerM2)],
+      ["Valor líquido / hora", formatMoney(calculation.netPerHour)],
+    ] },
   ];
 
   return (
-    <dl className={`bo-summary-metrics${compact ? " is-compact" : ""}`}>
-      {metrics.map(([label, value]) => (
-        <div key={label}>
-          <dt>{label}</dt>
-          <dd>{value}</dd>
-        </div>
+    <div className={`bo-summary-groups${compact ? " is-compact" : ""}`}>
+      {groups.map((group) => (
+        <section className="bo-summary-group" key={group.title}>
+          <h3>{group.title}</h3>
+          <dl className="bo-summary-metrics">
+            {group.metrics.map(([label, value, className]) => (
+              <div className={className} key={label}>
+                <dt>{label}</dt>
+                <dd>{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
       ))}
-    </dl>
+    </div>
   );
 }
 

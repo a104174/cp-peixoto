@@ -7,10 +7,13 @@ export const dynamic = "force-dynamic";
 
 export default async function EditQuotePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ saved?: string }>;
 }) {
   const { id } = await params;
+  const query = await searchParams;
   const [quote, clients, materials] = await Promise.all([
     getQuoteById(id),
     listClients(true),
@@ -26,7 +29,7 @@ export default async function EditQuotePage({
       clients={clients}
       initialDraft={mapQuoteToDraft(quote)}
       materials={materials}
+      successMessage={query.saved === "created" ? `Orçamento ${quote.quote.quote_number} criado com sucesso.` : undefined}
     />
   );
 }
-

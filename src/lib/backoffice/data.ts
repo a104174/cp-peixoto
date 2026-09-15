@@ -98,6 +98,11 @@ function sameDecimal(left: string | null | undefined, right: string | null | und
   }
 }
 
+function loadFailed(operation: string, error: { code?: string; message: string }): never {
+  console.error(`[backoffice] ${operation}`, { code: error.code, message: error.message });
+  throw new Error("Não foi possível carregar os dados do backoffice.");
+}
+
 export async function listClients(
   includeInactive = false,
 ): Promise<ClientSummary[]> {
@@ -119,7 +124,7 @@ export async function listClients(
 
   const { data, error } = await query;
   if (error) {
-    throw new Error(`Não foi possível carregar os clientes: ${error.message}`);
+    loadFailed("load clients", error);
   }
 
   return data ?? [];
@@ -148,7 +153,7 @@ export async function listMaterials(
 
   const { data, error } = await query;
   if (error) {
-    throw new Error(`Não foi possível carregar os materiais: ${error.message}`);
+    loadFailed("load materials", error);
   }
 
   return data ?? [];
@@ -168,7 +173,7 @@ export async function listQuotes(): Promise<QuoteListItem[]> {
     .order("created_at", { ascending: false });
 
   if (error) {
-    throw new Error(`Não foi possível carregar os orçamentos: ${error.message}`);
+    loadFailed("load quotes", error);
   }
 
   return data ?? [];
@@ -194,7 +199,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 
   const failed = [quotes, clients, materials].find((result) => result.error);
   if (failed?.error) {
-    throw new Error(`Não foi possível carregar o dashboard: ${failed.error.message}`);
+    loadFailed("load dashboard", failed.error);
   }
 
   return {
@@ -258,7 +263,7 @@ export async function getQuoteById(id: string): Promise<QuoteWithLines | null> {
     surchargeResult,
   ].find((result) => result.error);
   if (failed?.error) {
-    throw new Error(`Não foi possível carregar o orçamento: ${failed.error.message}`);
+    loadFailed("load quote", failed.error);
   }
 
   if (!quoteResult.data) {

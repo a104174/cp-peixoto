@@ -6,12 +6,13 @@ import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type LoginActionState = {
-  error?: string;
+  message?: string;
+  fieldErrors?: Record<string, string>;
 };
 
 const loginSchema = z.object({
-  email: z.string().trim().email("Introduza um email válido."),
-  password: z.string().min(1, "Introduza a password."),
+  email: z.string().trim().min(1, "Introduza o email.").email("Introduza um email válido."),
+  password: z.string().min(1, "Introduza a palavra-passe."),
 });
 
 function safeNextPath(value: string): string {
@@ -32,20 +33,30 @@ export async function loginAction(
   });
 
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? "Dados de login inválidos." };
+    return {
+      message: "Verifique os campos assinalados.",
+      fieldErrors: Object.fromEntries(
+        parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message]),
+      ),
+    };
   }
 
   const supabase = await createSupabaseServerClient();
   if (!supabase) {
     return {
-      error:
-        "Supabase ainda não está configurado. Defina as variáveis no ambiente local.",
+      message: "Não foi possível iniciar sessão. Tente novamente.",
     };
   }
 
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
-    return { error: "Email ou password inválidos." };
+    console.error("[backoffice] login failed", { name: error.name, status: error.status });
+    return {
+      message:
+        error.status === 400
+          ? "Email ou palavra-passe incorretos."
+          : "Não foi possível iniciar sessão. Tente novamente.",
+    };
   }
 
   redirect(safeNextPath(String(formData.get("nextPath") ?? "")));
@@ -59,4 +70,3 @@ export async function logoutAction(): Promise<void> {
 
   redirect("/backoffice/login");
 }
-

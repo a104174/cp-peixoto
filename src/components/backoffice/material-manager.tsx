@@ -10,6 +10,9 @@ import {
   updateMaterialAction,
 } from "@/lib/backoffice/actions";
 import type { MaterialSummary } from "@/lib/backoffice/data";
+import type { FieldErrors } from "@/lib/backoffice/validation";
+import { ConfirmDialog } from "./confirm-dialog";
+import { FormFieldError } from "./form-field-error";
 
 type MaterialForm = {
   brand: string;
@@ -110,7 +113,9 @@ export function MaterialManager({
   const [showInactive, setShowInactive] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<MaterialForm>(emptyForm);
-  const [feedback, setFeedback] = useState("");
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [materialToDisable, setMaterialToDisable] = useState<MaterialSummary | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
@@ -127,24 +132,33 @@ export function MaterialManager({
 
   function updateField(field: keyof MaterialForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
   }
 
   function startCreate() {
     setEditingId(null);
     setForm(emptyForm);
-    setFeedback("");
+    setFeedback(null);
+    setFieldErrors({});
   }
 
   function startEdit(material: MaterialSummary) {
     setEditingId(material.id);
     setForm(formFromMaterial(material));
-    setFeedback("");
+    setFeedback(null);
+    setFieldErrors({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFeedback("");
+    setFeedback(null);
+    setFieldErrors({});
     const formData = new FormData(event.currentTarget);
     if (editingId) formData.set("id", editingId);
 
@@ -154,11 +168,16 @@ export function MaterialManager({
         : await createMaterialAction(formData);
 
       if (!result.success) {
-        setFeedback(result.error ?? "Não foi possível guardar o material.");
+        if (result.code === "AUTH_REQUIRED") {
+          router.push("/backoffice/login?reason=session-expired");
+          return;
+        }
+        setFieldErrors(result.fieldErrors ?? {});
+        setFeedback({ type: "error", message: result.message });
         return;
       }
 
-      setFeedback(editingId ? "Material atualizado." : "Material criado.");
+      setFeedback({ type: "success", message: result.message ?? (editingId ? "Material atualizado." : "Material criado com sucesso.") });
       if (result.id) {
         const nextMaterial = materialFromForm(formData, result.id);
         setMaterials((current) => {
@@ -184,20 +203,25 @@ export function MaterialManager({
   }
 
   function toggle(material: MaterialSummary) {
-    setFeedback("");
+    setFeedback(null);
     startTransition(async () => {
       const result = await toggleMaterialActiveAction(material.id);
       if (!result.success) {
-        setFeedback(result.error ?? "Não foi possível alterar o estado.");
+        if (result.code === "AUTH_REQUIRED") {
+          router.push("/backoffice/login?reason=session-expired");
+          return;
+        }
+        setFeedback({ type: "error", message: result.message });
         return;
       }
-      setFeedback(material.is_active ? "Material desativado." : "Material reativado.");
+      setFeedback({ type: "success", message: material.is_active ? "Material desativado." : "Material reativado." });
       setMaterials((current) =>
         current.map((item) =>
           item.id === material.id ? { ...item, is_active: !item.is_active } : item,
         ),
       );
       router.refresh();
+      setMaterialToDisable(null);
     });
   }
 
@@ -226,34 +250,34 @@ export function MaterialManager({
             </button>
           ) : null}
         </div>
-        <form className="bo-form-grid" onSubmit={submit}>
-          <label>Marca<input className="bo-input" name="brand" onChange={(event) => updateField("brand", event.target.value)} required value={form.brand} /></label>
-          <label>Nome *<input className="bo-input" name="name" onChange={(event) => updateField("name", event.target.value)} required value={form.name} /></label>
-          <label>Variante<input className="bo-input" name="variant" onChange={(event) => updateField("variant", event.target.value)} value={form.variant} /></label>
-          <label>Categoria<input className="bo-input" name="category" onChange={(event) => updateField("category", event.target.value)} value={form.category} /></label>
-          <label className="bo-field-wide">Embalagem / descrição<input className="bo-input" name="packageLabel" onChange={(event) => updateField("packageLabel", event.target.value)} value={form.packageLabel} /></label>
-          <label>Quantidade embalagem<input className="bo-input" inputMode="decimal" name="packageQuantity" onChange={(event) => updateField("packageQuantity", event.target.value)} value={form.packageQuantity} /></label>
-          <label>Unidade embalagem<input className="bo-input" name="packageUnit" onChange={(event) => updateField("packageUnit", event.target.value)} value={form.packageUnit} /></label>
+        <form className="bo-form-grid" onSubmit={submit} noValidate>
+          <MaterialField error={fieldErrors.brand} label="Marca *" name="brand" onChange={(value) => updateField("brand", value)} required value={form.brand} />
+          <MaterialField error={fieldErrors.name} label="Nome *" name="name" onChange={(value) => updateField("name", value)} required value={form.name} />
+          <MaterialField error={fieldErrors.variant} label="Variante" name="variant" onChange={(value) => updateField("variant", value)} value={form.variant} />
+          <MaterialField error={fieldErrors.category} label="Categoria" name="category" onChange={(value) => updateField("category", value)} value={form.category} />
+          <MaterialField className="bo-field-wide" error={fieldErrors.packageLabel} label="Embalagem / descrição" name="packageLabel" onChange={(value) => updateField("packageLabel", value)} value={form.packageLabel} />
+          <MaterialField decimal error={fieldErrors.packageQuantity} label="Quantidade embalagem" name="packageQuantity" onChange={(value) => updateField("packageQuantity", value)} value={form.packageQuantity} />
+          <MaterialField error={fieldErrors.packageUnit} label="Unidade embalagem" name="packageUnit" onChange={(value) => updateField("packageUnit", value)} value={form.packageUnit} />
           <label>Tipo de cálculo
             <select className="bo-input" name="calculationType" onChange={(event) => updateField("calculationType", event.target.value as MaterialForm["calculationType"])} value={form.calculationType}>
               <option value="per_m2">Por m²</option>
               <option value="fixed">Fixo / manual</option>
             </select>
           </label>
-          <label>Consumo de referência<input className="bo-input" inputMode="decimal" name="consumption" onChange={(event) => updateField("consumption", event.target.value)} value={form.consumption} /></label>
-          <label>Unidade do consumo<input className="bo-input" name="consumptionUnit" onChange={(event) => updateField("consumptionUnit", event.target.value)} value={form.consumptionUnit} /></label>
-          <label>Unidade de cálculo<input className="bo-input" name="unit" onChange={(event) => updateField("unit", event.target.value)} required value={form.unit} /></label>
-          <label>Preço base / unidade<input className="bo-input" inputMode="decimal" name="baseUnitPrice" onChange={(event) => updateField("baseUnitPrice", event.target.value)} value={form.baseUnitPrice} /></label>
-          <label>Preço sugerido / unidade<input className="bo-input" inputMode="decimal" name="discountedUnitPrice" onChange={(event) => updateField("discountedUnitPrice", event.target.value)} value={form.discountedUnitPrice} /></label>
-          <label>Preço base / embalagem<input className="bo-input" inputMode="decimal" name="basePackagePrice" onChange={(event) => updateField("basePackagePrice", event.target.value)} value={form.basePackagePrice} /></label>
-          <label>Preço sugerido / embalagem<input className="bo-input" inputMode="decimal" name="discountedPackagePrice" onChange={(event) => updateField("discountedPackagePrice", event.target.value)} value={form.discountedPackagePrice} /></label>
-          <label>Desconto catálogo (%)<input className="bo-input" inputMode="decimal" name="discountRate" onChange={(event) => updateField("discountRate", event.target.value)} value={form.discountRate} /></label>
+          <MaterialField decimal error={fieldErrors.consumption} label="Consumo de referência" name="consumption" onChange={(value) => updateField("consumption", value)} value={form.consumption} />
+          <MaterialField error={fieldErrors.consumptionUnit} label="Unidade do consumo" name="consumptionUnit" onChange={(value) => updateField("consumptionUnit", value)} value={form.consumptionUnit} />
+          <MaterialField error={fieldErrors.unit} label="Unidade de cálculo *" name="unit" onChange={(value) => updateField("unit", value)} required value={form.unit} />
+          <MaterialField decimal error={fieldErrors.baseUnitPrice} label="Preço base / unidade" name="baseUnitPrice" onChange={(value) => updateField("baseUnitPrice", value)} value={form.baseUnitPrice} />
+          <MaterialField decimal error={fieldErrors.discountedUnitPrice} label="Preço sugerido / unidade" name="discountedUnitPrice" onChange={(value) => updateField("discountedUnitPrice", value)} value={form.discountedUnitPrice} />
+          <MaterialField decimal error={fieldErrors.basePackagePrice} label="Preço base / embalagem" name="basePackagePrice" onChange={(value) => updateField("basePackagePrice", value)} value={form.basePackagePrice} />
+          <MaterialField decimal error={fieldErrors.discountedPackagePrice} label="Preço sugerido / embalagem" name="discountedPackagePrice" onChange={(value) => updateField("discountedPackagePrice", value)} value={form.discountedPackagePrice} />
+          <MaterialField decimal error={fieldErrors.discountRate} label="Desconto catálogo (%)" name="discountRate" onChange={(value) => updateField("discountRate", value)} value={form.discountRate} />
           <label className="bo-field-wide">Notas<textarea className="bo-input bo-textarea" name="notes" onChange={(event) => updateField("notes", event.target.value)} rows={3} value={form.notes} /></label>
           <div className="bo-form-actions bo-field-wide">
             <button className="bo-button bo-button-primary" disabled={isPending} type="submit">
               {isPending ? "A guardar…" : editingId ? "Guardar alterações" : "Adicionar material"}
             </button>
-            {feedback ? <p aria-live="polite" className="bo-form-feedback">{feedback}</p> : null}
+            {feedback ? <p aria-live="polite" className={`bo-form-feedback is-${feedback.type}`} role={feedback.type === "error" ? "alert" : "status"}>{feedback.message}</p> : null}
           </div>
         </form>
       </section>
@@ -261,7 +285,10 @@ export function MaterialManager({
       <section className="bo-card">
         <div className="bo-toolbar bo-toolbar-inline">
           <label className="bo-search-label" htmlFor="material-search">Pesquisar materiais</label>
-          <input className="bo-input bo-search-input" id="material-search" onChange={(event) => setQuery(event.target.value)} placeholder="Nome, variante, embalagem ou marca" type="search" value={query} />
+          <div className="bo-search-control">
+            <input className="bo-input bo-search-input" id="material-search" onChange={(event) => setQuery(event.target.value)} placeholder="Pesquisar materiais..." type="search" value={query} />
+            {query ? <button aria-label="Limpar pesquisa" className="bo-search-clear" onClick={() => setQuery("")} type="button">×</button> : null}
+          </div>
           <label className="bo-check-label">
             <input checked={showInactive} onChange={(event) => setShowInactive(event.target.checked)} type="checkbox" />
             Mostrar inativos
@@ -271,7 +298,8 @@ export function MaterialManager({
         {filtered.length === 0 ? (
           <div className="bo-empty-state">
             <h2>{query ? "Nenhum material encontrado" : "Ainda não existem materiais"}</h2>
-            <p>{query ? "Tente outro termo de pesquisa." : "Execute a seed WestWood depois de ligar o Supabase."}</p>
+            <p>{query ? "Tente outro termo de pesquisa." : "Adicione o primeiro material ao catálogo."}</p>
+            {!query ? <button className="bo-button bo-button-secondary" onClick={startCreate} type="button">+ Adicionar material</button> : null}
           </div>
         ) : (
           <div className="bo-table-wrap">
@@ -301,7 +329,7 @@ export function MaterialManager({
                     <td data-label="Ações">
                       <div className="bo-inline-actions">
                         <button className="bo-link-button" onClick={() => startEdit(material)} type="button">Editar</button>
-                        <button className="bo-link-button bo-link-danger" disabled={isPending} onClick={() => toggle(material)} type="button">{material.is_active ? "Desativar" : "Reativar"}</button>
+                        <button className="bo-link-button bo-link-danger" disabled={isPending} onClick={() => material.is_active ? setMaterialToDisable(material) : toggle(material)} type="button">{material.is_active ? "Desativar" : "Reativar"}</button>
                       </div>
                     </td>
                   </tr>
@@ -311,6 +339,52 @@ export function MaterialManager({
           </div>
         )}
       </section>
+      <ConfirmDialog
+        confirmLabel="Desativar material"
+        description="O material deixará de aparecer nas pesquisas de novos orçamentos. Os orçamentos existentes não serão alterados."
+        onCancel={() => setMaterialToDisable(null)}
+        onConfirm={() => materialToDisable && toggle(materialToDisable)}
+        open={Boolean(materialToDisable)}
+        title="Desativar este material?"
+      />
     </div>
+  );
+}
+
+function MaterialField({
+  className,
+  decimal = false,
+  error,
+  label,
+  name,
+  onChange,
+  required = false,
+  value,
+}: {
+  className?: string;
+  decimal?: boolean;
+  error?: string;
+  label: string;
+  name: keyof MaterialForm;
+  onChange: (value: string) => void;
+  required?: boolean;
+  value: string;
+}) {
+  const errorId = `material-${name}-error`;
+  return (
+    <label className={className}>
+      {label}
+      <input
+        aria-describedby={error ? errorId : undefined}
+        aria-invalid={Boolean(error)}
+        className="bo-input"
+        inputMode={decimal ? "decimal" : undefined}
+        name={name}
+        onChange={(event) => onChange(event.target.value)}
+        required={required}
+        value={value}
+      />
+      <FormFieldError id={errorId} message={error} />
+    </label>
   );
 }

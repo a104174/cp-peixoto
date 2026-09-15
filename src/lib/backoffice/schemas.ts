@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseLocaleDecimal } from "./validation";
 
 const text = (max: number) =>
   z.string().trim().max(max).optional().nullable();
@@ -7,16 +8,24 @@ const decimalText = z
   .string()
   .trim()
   .max(40)
-  .regex(/^-?(?:\d+(?:[.,]\d*)?|[.,]\d+)?$/, "Número inválido.");
+  .regex(/^-?(?:\d+(?:[.,]\d*)?|[.,]\d+)?$/, "Introduza um valor válido.");
 
 const optionalDecimalText = decimalText.nullable().optional();
+const optionalNonNegativeDecimal = optionalDecimalText.refine(
+  (value) => !value || (parseLocaleDecimal(value)?.gte(0) ?? false),
+  "O valor não pode ser negativo.",
+);
+const optionalPercentage = optionalNonNegativeDecimal.refine(
+  (value) => !value || (parseLocaleDecimal(value)?.lt(100) ?? false),
+  "A percentagem deve estar entre 0% e 100%.",
+);
 
 export const clientInputSchema = z.object({
-  name: z.string().trim().min(1).max(160),
+  name: z.string().trim().min(1, "Introduza o nome do cliente.").max(160),
   email: z
     .string()
     .trim()
-    .email("Email inválido.")
+    .email("Introduza um email válido.")
     .or(z.literal(""))
     .nullable()
     .optional(),
@@ -30,22 +39,22 @@ export const clientInputSchema = z.object({
 export type ClientInput = z.infer<typeof clientInputSchema>;
 
 export const materialInputSchema = z.object({
-  brand: z.string().trim().min(1).max(120),
-  name: z.string().trim().min(1).max(160),
+  brand: z.string().trim().min(1, "Introduza a marca.").max(120),
+  name: z.string().trim().min(1, "Introduza o nome do material.").max(160),
   variant: text(80),
   category: text(80),
   packageLabel: text(80),
-  packageQuantity: optionalDecimalText,
+  packageQuantity: optionalNonNegativeDecimal,
   packageUnit: text(32),
   calculationType: z.enum(["per_m2", "fixed"]),
-  consumption: optionalDecimalText,
+  consumption: optionalNonNegativeDecimal,
   consumptionUnit: text(32),
-  unit: z.string().trim().min(1).max(32),
-  baseUnitPrice: optionalDecimalText,
-  discountedUnitPrice: optionalDecimalText,
-  basePackagePrice: optionalDecimalText,
-  discountedPackagePrice: optionalDecimalText,
-  discountRate: optionalDecimalText,
+  unit: z.string().trim().min(1, "Introduza a unidade de cálculo.").max(32),
+  baseUnitPrice: optionalNonNegativeDecimal,
+  discountedUnitPrice: optionalNonNegativeDecimal,
+  basePackagePrice: optionalNonNegativeDecimal,
+  discountedPackagePrice: optionalNonNegativeDecimal,
+  discountRate: optionalPercentage,
   notes: text(2_000),
 }).strict();
 

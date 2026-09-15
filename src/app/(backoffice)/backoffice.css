@@ -275,6 +275,19 @@
   color: var(--bo-muted);
 }
 
+.bo-button-danger {
+  background: var(--bo-danger);
+  color: #fff;
+}
+
+.bo-button-remove {
+  min-height: 36px;
+  border-color: #dfc3c1;
+  background: #fff8f7;
+  color: var(--bo-danger);
+  padding: 7px 11px;
+}
+
 .bo-heading-actions,
 .bo-action-row,
 .bo-inline-actions,
@@ -301,6 +314,15 @@
   background: var(--bo-card);
   box-shadow: var(--bo-shadow);
   padding: 20px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color .15s ease, transform .15s ease;
+}
+
+.bo-stat-card:hover,
+.bo-stat-card:focus-visible {
+  border-color: var(--bo-gold);
+  transform: translateY(-2px);
 }
 
 .bo-stat-card span {
@@ -321,6 +343,11 @@
   font-size: 13px;
   font-weight: 700;
   text-decoration: none;
+}
+
+.bo-stat-link {
+  color: var(--bo-gold-dark) !important;
+  font-weight: 700;
 }
 
 .bo-stat-card a:hover,
@@ -398,6 +425,18 @@ textarea.bo-input {
   border-color: var(--bo-gold-dark);
 }
 
+.bo-input[aria-invalid="true"] {
+  border-color: var(--bo-danger);
+  background: #fffafa;
+}
+
+.bo-field-error {
+  color: var(--bo-danger);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .bo-input.is-overridden {
   border-color: var(--bo-gold-dark);
   background: #fff9eb;
@@ -460,10 +499,28 @@ textarea.bo-input {
   font-weight: 700;
 }
 
+.bo-form-feedback.is-error {
+  color: var(--bo-danger);
+}
+
 .bo-global-feedback {
   border-left: 3px solid var(--bo-success);
   background: #edf7f0;
   padding: 11px 13px;
+}
+
+.bo-global-feedback.is-error {
+  border-left-color: var(--bo-danger);
+  background: #fff0ef;
+}
+
+.bo-notice {
+  border-left: 3px solid var(--bo-gold);
+  background: #fff8e9;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  color: #6b5428;
+  font-size: 13px;
 }
 
 .bo-toolbar {
@@ -489,6 +546,31 @@ textarea.bo-input {
 
 .bo-search-input {
   max-width: 450px;
+}
+
+.bo-search-control {
+  position: relative;
+  width: min(450px, 100%);
+}
+
+.bo-search-control .bo-search-input {
+  max-width: none;
+  padding-right: 38px;
+}
+
+.bo-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--bo-muted);
+  cursor: pointer;
+  transform: translateY(-50%);
+  font-size: 19px;
 }
 
 .bo-result-count {
@@ -610,15 +692,26 @@ textarea.bo-input {
 }
 
 .bo-empty-state p {
-  margin-bottom: 0;
+  margin-bottom: 16px;
 }
 
 .bo-inline-empty {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
   border: 1px dashed #cfc8b8;
   border-radius: 6px;
   margin-top: 18px;
   padding: 17px;
   font-size: 13px;
+}
+
+.bo-inline-empty strong {
+  color: var(--bo-charcoal);
+}
+
+.bo-inline-empty .bo-button {
+  margin-top: 4px;
 }
 
 .bo-section {
@@ -730,7 +823,8 @@ textarea.bo-input {
 }
 
 .bo-combobox-option:hover,
-.bo-combobox-option:focus-visible {
+.bo-combobox-option:focus-visible,
+.bo-combobox-option.is-active {
   background: #f7f1e3;
 }
 
@@ -742,6 +836,22 @@ textarea.bo-input {
 .bo-combobox-option small {
   color: var(--bo-muted);
   font-size: 11px;
+}
+
+.bo-combobox-empty {
+  margin: 0;
+  padding: 13px;
+  color: var(--bo-muted);
+  font-size: 12px;
+}
+
+.bo-combobox-empty p {
+  margin: 0 0 6px;
+}
+
+.bo-combobox-empty a {
+  color: var(--bo-gold-dark);
+  font-weight: 700;
 }
 
 .bo-inline-create {
@@ -802,6 +912,12 @@ textarea.bo-input {
   white-space: nowrap;
 }
 
+.bo-surcharge-helper {
+  grid-column: 2 / span 4;
+  color: var(--bo-muted);
+  font-size: 11px;
+}
+
 .bo-quote-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 310px;
@@ -818,6 +934,8 @@ textarea.bo-input {
 .bo-quote-summary {
   position: sticky;
   top: 22px;
+  max-height: calc(100vh - 44px);
+  overflow-y: auto;
 }
 
 .bo-quote-summary h2 {
@@ -828,6 +946,19 @@ textarea.bo-input {
 .bo-summary-metrics {
   display: grid;
   margin: 0;
+}
+
+.bo-summary-groups {
+  display: grid;
+  gap: 17px;
+}
+
+.bo-summary-group h3 {
+  margin: 0 0 5px;
+  color: var(--bo-gold-dark);
+  font-size: 10px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
 }
 
 .bo-summary-metrics > div {
@@ -852,29 +983,26 @@ textarea.bo-input {
   text-align: right;
 }
 
-.bo-summary-metrics > div:nth-child(7),
-.bo-summary-metrics > div:nth-child(10),
-.bo-summary-metrics > div:nth-child(11) {
+.bo-summary-metrics > div.is-emphasis {
   border-top: 1px solid #cfc9bc;
   color: var(--bo-charcoal);
   margin-top: 4px;
   padding-top: 12px;
 }
 
-.bo-summary-metrics > div:nth-child(7) dd,
-.bo-summary-metrics > div:nth-child(10) dd,
-.bo-summary-metrics > div:nth-child(11) dd {
+.bo-summary-metrics > div.is-emphasis dd {
   font-size: 15px;
   font-weight: 700;
-}
-
-.bo-summary-metrics.is-compact > div:nth-child(n + 13) {
-  display: none;
 }
 
 .bo-summary-save {
   width: 100%;
   margin-top: 22px;
+}
+
+.bo-manual-active {
+  color: var(--bo-gold-dark);
+  font-weight: 700;
 }
 
 .bo-warning-list {
@@ -991,6 +1119,55 @@ textarea.bo-input {
   text-align: center;
 }
 
+.bo-loading-dot {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bo-gold);
+  margin-right: 8px;
+  animation: bo-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes bo-pulse {
+  to { opacity: .35; }
+}
+
+.bo-dialog-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(20 21 20 / 58%);
+  padding: 20px;
+}
+
+.bo-dialog {
+  width: min(100%, 470px);
+  border-radius: 10px;
+  background: var(--bo-card);
+  box-shadow: 0 24px 70px rgb(0 0 0 / 25%);
+  padding: 24px;
+}
+
+.bo-dialog h2 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.bo-dialog p {
+  color: var(--bo-muted);
+  line-height: 1.55;
+}
+
+.bo-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
 .bo-sr-only {
   position: absolute;
   width: 1px;
@@ -1008,14 +1185,16 @@ textarea.bo-input {
   .bo-quote-summary {
     position: static;
     order: -1;
+    max-height: none;
+    overflow: visible;
   }
 
-  .bo-summary-metrics.is-compact {
+  .bo-summary-groups.is-compact {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 0 18px;
   }
 
-  .bo-summary-metrics.is-compact > div {
+  .bo-summary-groups.is-compact .bo-summary-metrics > div {
     border-top: 0;
     margin-top: 0;
   }
@@ -1265,7 +1444,7 @@ textarea.bo-input {
     justify-content: flex-end;
   }
 
-  .bo-summary-metrics.is-compact {
+  .bo-summary-groups.is-compact {
     grid-template-columns: 1fr;
   }
 

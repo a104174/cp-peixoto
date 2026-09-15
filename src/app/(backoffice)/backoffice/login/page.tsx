@@ -27,7 +27,7 @@ function safeNext(value: string | undefined): string {
 export default async function BackofficeLoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; reason?: string }>;
 }) {
   if (!hasSupabaseConfig()) {
     return <BackofficeSetupNotice />;
@@ -50,9 +50,11 @@ export default async function BackofficeLoginPage({
           <h1>Entrar no backoffice</h1>
           <p>Gira clientes, materiais e orçamentos num só lugar.</p>
         </div>
-        <LoginForm nextPath={nextPath} />
+        <LoginForm
+          nextPath={nextPath}
+          notice={params.reason === "session-expired" ? "A sua sessão expirou. Inicie sessão novamente." : undefined}
+        />
       </section>
     </main>
   );
 }
-

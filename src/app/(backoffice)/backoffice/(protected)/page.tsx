@@ -21,21 +21,21 @@ export default async function BackofficeDashboardPage() {
       </div>
 
       <div className="bo-stat-grid">
-        <article className="bo-stat-card">
+        <Link aria-label="Consultar orçamentos" className="bo-stat-card" href="/backoffice/orcamentos">
           <span>Orçamentos guardados</span>
           <strong>{stats.quotes}</strong>
-          <Link href="/backoffice/orcamentos">Consultar histórico</Link>
-        </article>
-        <article className="bo-stat-card">
+          <span className="bo-stat-link">Consultar histórico</span>
+        </Link>
+        <Link aria-label="Gerir clientes" className="bo-stat-card" href="/backoffice/clientes">
           <span>Clientes ativos</span>
           <strong>{stats.clients}</strong>
-          <Link href="/backoffice/clientes">Gerir clientes</Link>
-        </article>
-        <article className="bo-stat-card">
+          <span className="bo-stat-link">Gerir clientes</span>
+        </Link>
+        <Link aria-label="Gerir catálogo de materiais" className="bo-stat-card" href="/backoffice/materiais">
           <span>Materiais ativos</span>
           <strong>{stats.materials}</strong>
-          <Link href="/backoffice/materiais">Gerir catálogo</Link>
-        </article>
+          <span className="bo-stat-link">Gerir catálogo</span>
+        </Link>
       </div>
 
       <section className="bo-card bo-quick-actions">

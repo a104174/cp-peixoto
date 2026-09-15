@@ -40,13 +40,16 @@ export function decimalInputToRate(value: string): string {
   try {
     return new Decimal(normalized).div(100).toString();
   } catch {
-    return "";
+    return `invalid:${value}`;
   }
 }
 
 export function rateToDecimalInput(value: string): string {
   if (!value.trim()) {
     return "";
+  }
+  if (value.startsWith("invalid:")) {
+    return value.slice("invalid:".length);
   }
 
   try {

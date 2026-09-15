@@ -9,6 +9,9 @@ import {
   updateClientAction,
 } from "@/lib/backoffice/actions";
 import type { ClientSummary } from "@/lib/backoffice/data";
+import type { FieldErrors } from "@/lib/backoffice/validation";
+import { ConfirmDialog } from "./confirm-dialog";
+import { FormFieldError } from "./form-field-error";
 
 type ClientForm = {
   name: string;
@@ -68,7 +71,9 @@ export function ClientManager({
   const [showInactive, setShowInactive] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ClientForm>(emptyForm);
-  const [feedback, setFeedback] = useState("");
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [clientToArchive, setClientToArchive] = useState<ClientSummary | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const filtered = useMemo(() => {
@@ -89,23 +94,32 @@ export function ClientManager({
   function startCreate() {
     setEditingId(null);
     setForm(emptyForm);
-    setFeedback("");
+    setFeedback(null);
+    setFieldErrors({});
   }
 
   function startEdit(client: ClientSummary) {
     setEditingId(client.id);
     setForm(formFromClient(client));
-    setFeedback("");
+    setFeedback(null);
+    setFieldErrors({});
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function updateField(field: keyof ClientForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
   }
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setFeedback("");
+    setFeedback(null);
+    setFieldErrors({});
     const formData = new FormData(event.currentTarget);
     if (editingId) formData.set("id", editingId);
 
@@ -115,11 +129,16 @@ export function ClientManager({
         : await createClientAction(formData);
 
       if (!result.success) {
-        setFeedback(result.error ?? "Não foi possível guardar o cliente.");
+        if (result.code === "AUTH_REQUIRED") {
+          router.push("/backoffice/login?reason=session-expired");
+          return;
+        }
+        setFieldErrors(result.fieldErrors ?? {});
+        setFeedback({ type: "error", message: result.message });
         return;
       }
 
-      setFeedback(editingId ? "Cliente atualizado." : "Cliente criado.");
+      setFeedback({ type: "success", message: result.message ?? (editingId ? "Cliente atualizado." : "Cliente criado com sucesso.") });
       if (result.id) {
         const nextClient = clientFromForm(formData, result.id, true);
         setClients((current) => {
@@ -142,20 +161,25 @@ export function ClientManager({
   }
 
   function toggle(client: ClientSummary) {
-    setFeedback("");
+    setFeedback(null);
     startTransition(async () => {
       const result = await toggleClientActiveAction(client.id);
       if (!result.success) {
-        setFeedback(result.error ?? "Não foi possível alterar o estado.");
+        if (result.code === "AUTH_REQUIRED") {
+          router.push("/backoffice/login?reason=session-expired");
+          return;
+        }
+        setFeedback({ type: "error", message: result.message });
         return;
       }
-      setFeedback(client.is_active ? "Cliente arquivado." : "Cliente reativado.");
+      setFeedback({ type: "success", message: client.is_active ? "Cliente arquivado." : "Cliente reativado." });
       setClients((current) =>
         current.map((item) =>
           item.id === client.id ? { ...item, is_active: !item.is_active } : item,
         ),
       );
       router.refresh();
+      setClientToArchive(null);
     });
   }
 
@@ -188,22 +212,28 @@ export function ClientManager({
           <label>
             Nome *
             <input
+              aria-describedby={fieldErrors.name ? "client-name-error" : undefined}
+              aria-invalid={Boolean(fieldErrors.name)}
               className="bo-input"
               name="name"
               onChange={(event) => updateField("name", event.target.value)}
               required
               value={form.name}
             />
+            <FormFieldError id="client-name-error" message={fieldErrors.name} />
           </label>
           <label>
             Email
             <input
+              aria-describedby={fieldErrors.email ? "client-email-error" : undefined}
+              aria-invalid={Boolean(fieldErrors.email)}
               className="bo-input"
               name="email"
               onChange={(event) => updateField("email", event.target.value)}
               type="email"
               value={form.email}
             />
+            <FormFieldError id="client-email-error" message={fieldErrors.email} />
           </label>
           <label>
             Telefone
@@ -256,7 +286,7 @@ export function ClientManager({
               {isPending ? "A guardar…" : editingId ? "Guardar alterações" : "Criar cliente"}
             </button>
             {feedback ? (
-              <p aria-live="polite" className="bo-form-feedback">{feedback}</p>
+              <p aria-live="polite" className={`bo-form-feedback is-${feedback.type}`} role={feedback.type === "error" ? "alert" : "status"}>{feedback.message}</p>
             ) : null}
           </div>
         </form>
@@ -265,14 +295,10 @@ export function ClientManager({
       <section className="bo-card">
         <div className="bo-toolbar bo-toolbar-inline">
           <label className="bo-search-label" htmlFor="client-search">Pesquisar clientes</label>
-          <input
-            className="bo-input bo-search-input"
-            id="client-search"
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Nome, email, telefone ou localidade"
-            type="search"
-            value={query}
-          />
+          <div className="bo-search-control">
+            <input className="bo-input bo-search-input" id="client-search" onChange={(event) => setQuery(event.target.value)} placeholder="Pesquisar clientes..." type="search" value={query} />
+            {query ? <button aria-label="Limpar pesquisa" className="bo-search-clear" onClick={() => setQuery("")} type="button">×</button> : null}
+          </div>
           <label className="bo-check-label">
             <input checked={showInactive} onChange={(event) => setShowInactive(event.target.checked)} type="checkbox" />
             Mostrar inativos
@@ -283,6 +309,7 @@ export function ClientManager({
           <div className="bo-empty-state">
             <h2>{query ? "Nenhum cliente encontrado" : "Ainda não existem clientes"}</h2>
             <p>{query ? "Tente outro termo de pesquisa." : "Crie o primeiro cliente acima."}</p>
+            {!query ? <button className="bo-button bo-button-secondary" onClick={startCreate} type="button">+ Novo cliente</button> : null}
           </div>
         ) : (
           <div className="bo-table-wrap">
@@ -315,8 +342,8 @@ export function ClientManager({
                         <button className="bo-link-button" onClick={() => startEdit(client)} type="button">
                           Editar
                         </button>
-                        <button className="bo-link-button bo-link-danger" disabled={isPending} onClick={() => toggle(client)} type="button">
-                          {client.is_active ? "Desativar" : "Reativar"}
+                        <button className="bo-link-button bo-link-danger" disabled={isPending} onClick={() => client.is_active ? setClientToArchive(client) : toggle(client)} type="button">
+                          {client.is_active ? "Arquivar" : "Reativar"}
                         </button>
                       </div>
                     </td>
@@ -327,6 +354,14 @@ export function ClientManager({
           </div>
         )}
       </section>
+      <ConfirmDialog
+        confirmLabel="Arquivar cliente"
+        description="O cliente deixará de aparecer por defeito nas pesquisas. Os orçamentos existentes não serão alterados."
+        onCancel={() => setClientToArchive(null)}
+        onConfirm={() => clientToArchive && toggle(clientToArchive)}
+        open={Boolean(clientToArchive)}
+        title="Arquivar este cliente?"
+      />
     </div>
   );
 }
