@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { BackofficeIcon } from "@/components/backoffice/backoffice-icon";
 import { formatMoney, formatNumber } from "@/domain/quotes/format";
 import { listQuotes } from "@/lib/backoffice/data";
 
@@ -40,25 +41,29 @@ export default async function QuotesPage({
           <p className="bo-muted">Crie, consulte e edite os cálculos guardados.</p>
         </div>
         <Link className="bo-button bo-button-primary" href="/backoffice/orcamentos/novo">
-          Novo orçamento
+          <BackofficeIcon name="plus" size={16} /> Novo orçamento
         </Link>
       </div>
 
-      <form className="bo-toolbar bo-card" method="get">
-        <label className="bo-search-label" htmlFor="quote-search">Pesquisar</label>
-        <input
-          className="bo-input bo-search-input"
-          defaultValue={params.q ?? ""}
-          id="quote-search"
-          name="q"
-          placeholder="Pesquisar orçamentos..."
-          type="search"
-        />
+      <form className="bo-toolbar bo-list-toolbar" method="get">
+        <label className="bo-sr-only" htmlFor="quote-search">Pesquisar orçamentos</label>
+        <div className="bo-search-control">
+          <BackofficeIcon className="bo-search-icon" name="search" size={17} />
+          <input
+            className="bo-input bo-search-input"
+            defaultValue={params.q ?? ""}
+            id="quote-search"
+            name="q"
+            placeholder="Pesquisar por número, cliente ou local..."
+            type="search"
+          />
+        </div>
         <button className="bo-button bo-button-secondary" type="submit">Pesquisar</button>
         {query ? <Link className="bo-button bo-button-ghost" href="/backoffice/orcamentos">Limpar</Link> : null}
+        <span className="bo-result-count">{filtered.length} {filtered.length === 1 ? "orçamento" : "orçamentos"}</span>
       </form>
 
-      <section className="bo-card">
+      <section className="bo-card bo-list-card">
         {filtered.length === 0 ? (
           <div className="bo-empty-state">
             <h2>{query ? "Nenhum orçamento encontrado" : "Ainda não existem orçamentos"}</h2>
@@ -83,7 +88,7 @@ export default async function QuotesPage({
               <tbody>
                 {filtered.map((quote) => (
                   <tr key={quote.id}>
-                    <td data-label="N.º orçamento"><strong>{quote.quote_number}</strong></td>
+                    <td data-label="N.º orçamento"><Link className="bo-table-primary-link" href={`/backoffice/orcamentos/${quote.id}`}>{quote.quote_number}</Link></td>
                     <td data-label="Data">{formatDate(quote.quote_date)}</td>
                     <td data-label="Cliente">{quote.client_name_snapshot ?? "Sem cliente"}</td>
                     <td data-label="Local da obra">{quote.project_location ?? "—"}</td>
@@ -92,7 +97,7 @@ export default async function QuotesPage({
                     <td data-label="Atualizado">{formatDate(quote.updated_at.slice(0, 10))}</td>
                     <td data-label="Ações">
                       <Link className="bo-link-button" href={`/backoffice/orcamentos/${quote.id}`}>
-                        Abrir
+                        Abrir <BackofficeIcon name="arrow" size={14} />
                       </Link>
                     </td>
                   </tr>

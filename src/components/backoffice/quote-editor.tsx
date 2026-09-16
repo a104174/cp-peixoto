@@ -43,6 +43,7 @@ import type { ClientSummary, MaterialSummary } from "@/lib/backoffice/data";
 import { parseLocaleDecimal, validateQuoteDraft, type FieldErrors } from "@/lib/backoffice/validation";
 import { ConfirmDialog } from "./confirm-dialog";
 import { FormFieldError } from "./form-field-error";
+import { BackofficeIcon } from "./backoffice-icon";
 
 type QuoteEditorProps = {
   initialDraft: QuoteDraft;
@@ -438,18 +439,30 @@ export function QuoteEditor({
     <div className="bo-page bo-quote-page">
       <div className="bo-page-heading">
         <div>
-          <p className="bo-eyebrow">Cálculo operacional</p>
+          <nav aria-label="Breadcrumb" className="bo-breadcrumb">
+            <Link href="/backoffice/orcamentos">Orçamentos</Link>
+            <BackofficeIcon name="arrow" size={13} />
+            <span>{draft.quoteNumber ?? "Novo"}</span>
+          </nav>
           <h1>{draft.id ? `Editar ${draft.quoteNumber}` : "Novo orçamento"}</h1>
-          <p className="bo-muted">
-            Os totais são recalculados com precisão decimal e confirmados no servidor ao guardar.
-          </p>
+          <p className="bo-muted">Preencha os dados da obra e construa o cálculo por secções.</p>
         </div>
         <div className="bo-heading-actions">
           <button className="bo-button bo-button-primary" disabled={isPending} onClick={save} type="button">
-            {isPending ? "A guardar…" : "Guardar orçamento"}
+            <BackofficeIcon name="save" size={16} /> {isPending ? "A guardar…" : "Guardar orçamento"}
           </button>
         </div>
       </div>
+
+      <nav aria-label="Secções do orçamento" className="bo-section-nav">
+        <a href="#quote-project">Dados da obra</a>
+        <a href="#quote-materials">Materiais</a>
+        <a href="#quote-labor">Mão de obra</a>
+        <a href="#quote-subcontracts">Subempreitadas</a>
+        <a href="#quote-equipment">Equipamento</a>
+        <a href="#quote-surcharges">Acréscimos</a>
+        <a href="#quote-price">Preço</a>
+      </nav>
 
       {feedback ? (
         <p aria-live="polite" className={`bo-form-feedback bo-global-feedback is-${feedback.type}`} role={feedback.type === "error" ? "alert" : "status"}>{feedback.message}</p>
@@ -457,7 +470,7 @@ export function QuoteEditor({
 
       <div className="bo-quote-layout">
         <div className="bo-quote-main">
-          <section className="bo-card bo-section" aria-labelledby="quote-project-heading">
+          <section className="bo-card bo-section" aria-labelledby="quote-project-heading" id="quote-project">
             <div className="bo-section-heading">
               <div>
                 <p className="bo-eyebrow">1 · Dados da obra</p>
@@ -593,17 +606,17 @@ export function QuoteEditor({
             </div>
           </section>
 
-          <section className="bo-card bo-section" aria-labelledby="materials-heading">
+          <section className="bo-card bo-section" aria-labelledby="materials-heading" id="quote-materials">
             <div className="bo-section-heading">
               <div>
                 <p className="bo-eyebrow">2 · Materiais</p>
                 <h2 id="materials-heading">Materiais</h2>
               </div>
-              <button className="bo-button bo-button-secondary" onClick={addMaterial} type="button">+ Adicionar material</button>
+              <button className="bo-button bo-button-secondary" onClick={addMaterial} type="button"><BackofficeIcon name="plus" size={15} /> Adicionar material</button>
             </div>
             <p className="bo-section-help">O preço sugerido usa o valor com desconto do catálogo. Os campos da linha são overrides apenas deste orçamento.</p>
             {draft.materials.length === 0 ? (
-              <div className="bo-inline-empty"><strong>Ainda não adicionou materiais.</strong><span>Pesquise no catálogo para adicionar os materiais utilizados nesta obra.</span><button className="bo-button bo-button-secondary" onClick={addMaterial} type="button">+ Adicionar material</button></div>
+              <div className="bo-inline-empty"><strong>Ainda não adicionou materiais.</strong><span>Use “Adicionar material” para pesquisar no catálogo.</span></div>
             ) : (
               <div className="bo-line-list">
                 {draft.materials.map((line, index) => {
@@ -763,15 +776,15 @@ export function QuoteEditor({
             <div className="bo-section-total"><span>Total materiais</span><strong>{formatMoney(calculation.materials.total)}</strong></div>
           </section>
 
-          <section className="bo-card bo-section" aria-labelledby="labor-heading">
+          <section className="bo-card bo-section" aria-labelledby="labor-heading" id="quote-labor">
             <div className="bo-section-heading">
               <div>
                 <p className="bo-eyebrow">3 · Mão de obra</p>
                 <h2 id="labor-heading">Mão de obra</h2>
               </div>
-              <button className="bo-button bo-button-secondary" onClick={addLabor} type="button">+ Adicionar linha</button>
+              <button className="bo-button bo-button-secondary" onClick={addLabor} type="button"><BackofficeIcon name="plus" size={15} /> Adicionar linha</button>
             </div>
-            {draft.labor.length === 0 ? <div className="bo-inline-empty"><strong>Ainda não adicionou mão de obra.</strong><button className="bo-button bo-button-secondary" onClick={addLabor} type="button">+ Adicionar linha</button></div> : null}
+            {draft.labor.length === 0 ? <div className="bo-inline-empty"><strong>Ainda não adicionou mão de obra.</strong><span>Adicione uma linha quando esta obra incluir trabalho interno.</span></div> : null}
             {draft.labor.map((line, index) => {
               const lineResult = calculation.labor.lines[index];
               return (
@@ -828,16 +841,16 @@ export function QuoteEditor({
             confirmRemove={(line, remove) => setPendingRemoval({ title: "Remover esta viatura ou equipamento?", description: "Os dados desta linha serão perdidos.", remove })}
           />
 
-          <section className="bo-card bo-section" aria-labelledby="surcharges-heading">
+          <section className="bo-card bo-section" aria-labelledby="surcharges-heading" id="quote-surcharges">
             <div className="bo-section-heading">
               <div>
                 <p className="bo-eyebrow">6 · Acréscimos</p>
                 <h2 id="surcharges-heading">Acréscimos</h2>
               </div>
-              <button className="bo-button bo-button-secondary" onClick={addSurcharge} type="button">+ Adicionar acréscimo</button>
+              <button className="bo-button bo-button-secondary" onClick={addSurcharge} type="button"><BackofficeIcon name="plus" size={15} /> Adicionar acréscimo</button>
             </div>
             <p className="bo-section-help">As linhas são aplicadas sequencialmente. A base “custos diretos + anteriores” inclui os acréscimos anteriores.</p>
-            {draft.surcharges.length === 0 ? <div className="bo-inline-empty"><strong>Sem acréscimos neste orçamento.</strong><span>Adicione apenas quando forem necessários para esta obra.</span><button className="bo-button bo-button-secondary" onClick={addSurcharge} type="button">+ Adicionar acréscimo</button></div> : null}
+            {draft.surcharges.length === 0 ? <div className="bo-inline-empty"><strong>Sem acréscimos neste orçamento.</strong><span>Adicione apenas quando forem necessários para esta obra.</span></div> : null}
             <div className="bo-surcharge-list">
               {draft.surcharges.map((line, index) => {
                 const result = calculation.surcharges.lines[index];
@@ -861,7 +874,7 @@ export function QuoteEditor({
             <div className="bo-section-total"><span>Total acréscimos</span><strong>{formatMoney(calculation.surcharges.total)}</strong></div>
           </section>
 
-          <section className="bo-card bo-section" aria-labelledby="price-heading">
+          <section className="bo-card bo-section bo-price-section" aria-labelledby="price-heading" id="quote-price">
             <div className="bo-section-heading">
               <div>
                 <p className="bo-eyebrow">7 · Preço / margem</p>
@@ -871,7 +884,7 @@ export function QuoteEditor({
             <div className="bo-form-grid">
               <label>
                 Preço recomendado (CHF)
-                <output className="bo-output">{formatMoney(calculation.recommendedGross)}</output>
+                <output className="bo-output bo-output-metric">{formatMoney(calculation.recommendedGross)}</output>
               </label>
               <label>
                 Preço manual (CHF)
@@ -881,16 +894,16 @@ export function QuoteEditor({
               </label>
               <label>
                 Preço utilizado (CHF)
-                <output className="bo-output">{formatMoney(calculation.grossUsed)}</output>
+                <output className="bo-output bo-output-metric is-primary">{formatMoney(calculation.grossUsed)}</output>
               </label>
               <label>
                 Margem real
-                <output className="bo-output">{formatPercent(calculation.realMargin)}</output>
+                <output className="bo-output bo-output-metric is-primary">{formatPercent(calculation.realMargin)}</output>
               </label>
             </div>
           </section>
 
-          <section className="bo-card bo-section" aria-labelledby="summary-heading">
+          <section className="bo-card bo-section bo-inline-summary" aria-labelledby="summary-heading" id="quote-summary">
             <div className="bo-section-heading">
               <div>
                 <p className="bo-eyebrow">8 · Resumo</p>
@@ -908,14 +921,22 @@ export function QuoteEditor({
           </section>
         </div>
 
-        <aside className="bo-quote-summary bo-card" aria-label="Resumo financeiro">
-          <p className="bo-eyebrow">Resumo financeiro</p>
-          <h2>{draft.quoteNumber ?? "Novo orçamento"}</h2>
+        <aside className="bo-quote-summary" aria-label="Resumo financeiro">
+          <div className="bo-summary-header">
+            <p className="bo-eyebrow">Resumo financeiro</p>
+            <h2>{draft.quoteNumber ?? "Novo orçamento"}</h2>
+          </div>
           <SummaryMetrics calculation={calculation} compact manualGross={draft.manualGross} />
           <button className="bo-button bo-button-primary bo-summary-save" disabled={isPending} onClick={save} type="button">
-            {isPending ? "A guardar…" : "Guardar orçamento"}
+            <BackofficeIcon name="save" size={16} /> {isPending ? "A guardar…" : "Guardar orçamento"}
           </button>
         </aside>
+      </div>
+      <div className="bo-mobile-save-bar">
+        <div><span>{draft.quoteNumber ?? "Novo orçamento"}</span><strong>{formatMoney(calculation.netValue)}</strong></div>
+        <button className="bo-button bo-button-primary" disabled={isPending} onClick={save} type="button">
+          <BackofficeIcon name="save" size={16} /> {isPending ? "A guardar…" : "Guardar"}
+        </button>
       </div>
       <ConfirmDialog
         confirmLabel="Sair sem guardar"
@@ -975,12 +996,12 @@ function SimpleLinesSection({
   confirmRemove: (line: QuoteLineDraft, remove: () => void) => void;
 }) {
   return (
-    <section className="bo-card bo-section" aria-labelledby={headingId}>
+    <section className="bo-card bo-section" aria-labelledby={headingId} id={`quote-${group}`}>
       <div className="bo-section-heading">
         <div><p className="bo-eyebrow">{title}</p><h2 id={headingId}>{title.slice(4)}</h2></div>
-        <button className="bo-button bo-button-secondary" onClick={add} type="button">+ Adicionar linha</button>
+        <button className="bo-button bo-button-secondary" onClick={add} type="button"><BackofficeIcon name="plus" size={15} /> Adicionar linha</button>
       </div>
-      {lines.length === 0 ? <div className="bo-inline-empty"><strong>{empty}</strong><button className="bo-button bo-button-secondary" onClick={add} type="button">+ Adicionar linha</button></div> : null}
+      {lines.length === 0 ? <div className="bo-inline-empty"><strong>{empty}</strong><span>Adicione uma linha apenas quando for necessária.</span></div> : null}
       {lines.map((line, index) => (
         <article className="bo-line-card" key={line.id}>
           <div className="bo-line-card-heading"><strong>Linha {index + 1}</strong><button className="bo-button bo-button-remove" onClick={() => {
@@ -1042,7 +1063,7 @@ function SummaryMetrics({
   return (
     <div className={`bo-summary-groups${compact ? " is-compact" : ""}`}>
       {groups.map((group) => (
-        <section className="bo-summary-group" key={group.title}>
+        <section className={`bo-summary-group is-${group.title.toLocaleLowerCase("pt-PT").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replaceAll(" ", "-")}`} key={group.title}>
           <h3>{group.title}</h3>
           <dl className="bo-summary-metrics">
             {group.metrics.map(([label, value, className]) => (

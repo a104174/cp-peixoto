@@ -43,17 +43,31 @@ export default async function BackofficeLoginPage({
 
   return (
     <main className="bo-login-page">
-      <section className="bo-login-card bo-card">
-        <div className="bo-login-heading">
-          <span className="bo-brand-mark">CP</span>
-          <p className="bo-eyebrow">CP Peixoto · Área reservada</p>
-          <h1>Entrar no backoffice</h1>
-          <p>Gira clientes, materiais e orçamentos num só lugar.</p>
+      <section className="bo-login-shell">
+        <div className="bo-login-context">
+          <div className="bo-login-brand">
+            <span className="bo-brand-mark">CP</span>
+            <span><strong>CP Peixoto</strong><small>Backoffice</small></span>
+          </div>
+          <div className="bo-login-context-copy">
+            <p className="bo-eyebrow">Área reservada</p>
+            <h1>Gestão rigorosa.<br />Decisões claras.</h1>
+            <p>Orçamentos, clientes e materiais reunidos num espaço operacional seguro.</p>
+          </div>
+          <p className="bo-login-context-foot">CP Peixoto · Suíça</p>
         </div>
-        <LoginForm
-          nextPath={nextPath}
-          notice={params.reason === "session-expired" ? "A sua sessão expirou. Inicie sessão novamente." : undefined}
-        />
+        <div className="bo-login-card">
+          <div className="bo-login-heading">
+            <p className="bo-eyebrow">Acesso reservado</p>
+            <h2>Bem-vindo de volta</h2>
+            <p>Introduza os seus dados para continuar.</p>
+          </div>
+          <LoginForm
+            nextPath={nextPath}
+            notice={params.reason === "session-expired" ? "A sua sessão expirou. Inicie sessão novamente." : undefined}
+          />
+          <p className="bo-login-security">Acesso exclusivo a utilizadores autorizados.</p>
+        </div>
       </section>
     </main>
   );

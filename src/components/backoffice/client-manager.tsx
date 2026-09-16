@@ -13,6 +13,7 @@ import type { FormNumericValue } from "@/domain/quotes/format";
 import type { FieldErrors } from "@/lib/backoffice/validation";
 import { ConfirmDialog } from "./confirm-dialog";
 import { FormFieldError } from "./form-field-error";
+import { BackofficeIcon } from "./backoffice-icon";
 
 type ClientForm = {
   name: string;
@@ -196,11 +197,12 @@ export function ClientManager({
           <p className="bo-muted">Contactos associados aos seus orçamentos.</p>
         </div>
         <button className="bo-button bo-button-primary" onClick={startCreate} type="button">
-          Novo cliente
+          <BackofficeIcon name="plus" size={16} /> Novo cliente
         </button>
       </div>
 
-      <section className="bo-card bo-form-card">
+      <div className="bo-manager-layout bo-manager-layout-clients">
+      <section className="bo-card bo-form-card bo-manager-form">
         <div className="bo-section-heading">
           <div>
             <p className="bo-eyebrow">{editingId ? "Editar" : "Criar"}</p>
@@ -212,8 +214,11 @@ export function ClientManager({
             </button>
           ) : null}
         </div>
-        <form className="bo-form-grid" onSubmit={submit}>
-          <label>
+        <form className="bo-manager-form-body" onSubmit={submit}>
+          <fieldset className="bo-form-group">
+            <legend>Identificação</legend>
+            <div className="bo-form-grid">
+          <label className="bo-field-wide">
             Nome *
             <input
               aria-describedby={fieldErrors.name ? "client-name-error" : undefined}
@@ -248,6 +253,11 @@ export function ClientManager({
               value={form.phone}
             />
           </label>
+            </div>
+          </fieldset>
+          <fieldset className="bo-form-group">
+            <legend>Morada</legend>
+            <div className="bo-form-grid">
           <label>
             Localidade
             <input
@@ -275,7 +285,12 @@ export function ClientManager({
               value={form.postalCode}
             />
           </label>
-          <label className="bo-field-wide">
+            </div>
+          </fieldset>
+          <fieldset className="bo-form-group">
+            <legend>Notas</legend>
+            <div className="bo-form-grid">
+          <label className="bo-field-wide bo-field-full">
             Notas
             <textarea
               className="bo-input bo-textarea"
@@ -285,7 +300,9 @@ export function ClientManager({
               value={form.notes}
             />
           </label>
-          <div className="bo-form-actions bo-field-wide">
+            </div>
+          </fieldset>
+          <div className="bo-form-actions">
             <button className="bo-button bo-button-primary" disabled={isPending} type="submit">
               {isPending ? "A guardar…" : editingId ? "Guardar alterações" : "Criar cliente"}
             </button>
@@ -296,10 +313,11 @@ export function ClientManager({
         </form>
       </section>
 
-      <section className="bo-card">
+      <section className="bo-card bo-manager-list">
         <div className="bo-toolbar bo-toolbar-inline">
-          <label className="bo-search-label" htmlFor="client-search">Pesquisar clientes</label>
+          <label className="bo-sr-only" htmlFor="client-search">Pesquisar clientes</label>
           <div className="bo-search-control">
+            <BackofficeIcon className="bo-search-icon" name="search" size={17} />
             <input className="bo-input bo-search-input" id="client-search" onChange={(event) => setQuery(event.target.value)} placeholder="Pesquisar clientes..." type="search" value={query} />
             {query ? <button aria-label="Limpar pesquisa" className="bo-search-clear" onClick={() => setQuery("")} type="button">×</button> : null}
           </div>
@@ -344,10 +362,10 @@ export function ClientManager({
                     <td data-label="Ações">
                       <div className="bo-inline-actions">
                         <button className="bo-link-button" onClick={() => startEdit(client)} type="button">
-                          Editar
+                          <BackofficeIcon name="edit" size={14} /> Editar
                         </button>
                         <button className="bo-link-button bo-link-danger" disabled={isPending} onClick={() => client.is_active ? setClientToArchive(client) : toggle(client)} type="button">
-                          {client.is_active ? "Arquivar" : "Reativar"}
+                          <BackofficeIcon name="archive" size={14} /> {client.is_active ? "Arquivar" : "Reativar"}
                         </button>
                       </div>
                     </td>
@@ -358,6 +376,7 @@ export function ClientManager({
           </div>
         )}
       </section>
+      </div>
       <ConfirmDialog
         confirmLabel="Arquivar cliente"
         description="O cliente deixará de aparecer por defeito nas pesquisas. Os orçamentos existentes não serão alterados."

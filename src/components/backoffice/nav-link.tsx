@@ -3,12 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { BackofficeIcon, type BackofficeIconName } from "./backoffice-icon";
+
 type NavLinkProps = {
   href: string;
+  icon: BackofficeIconName;
   children: React.ReactNode;
 };
 
-export function BackofficeNavLink({ href, children }: NavLinkProps) {
+export function BackofficeNavLink({ href, icon, children }: NavLinkProps) {
   const pathname = usePathname();
   const active =
     href === "/backoffice"
@@ -16,9 +19,10 @@ export function BackofficeNavLink({ href, children }: NavLinkProps) {
       : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <Link className={`bo-nav-link${active ? " is-active" : ""}`} href={href}>
-      {children}
+    <Link aria-current={active ? "page" : undefined} className={`bo-nav-link${active ? " is-active" : ""}`} href={href}>
+      <span className="bo-nav-icon"><BackofficeIcon name={icon} /></span>
+      <span>{children}</span>
+      <span className="bo-nav-indicator" />
     </Link>
   );
 }
-
