@@ -4,11 +4,19 @@ import { parseLocaleDecimal } from "./validation";
 const text = (max: number) =>
   z.string().trim().max(max).optional().nullable();
 
-const decimalText = z
-  .string()
-  .trim()
-  .max(40)
-  .regex(/^-?(?:\d+(?:[.,]\d*)?|[.,]\d+)?$/, "Introduza um valor válido.");
+const decimalText = z.preprocess(
+  (value) =>
+    value === null || value === undefined
+      ? ""
+      : typeof value === "number"
+        ? String(value)
+        : value,
+  z
+    .string()
+    .trim()
+    .max(40)
+    .regex(/^-?(?:\d+(?:[.,]\d*)?|[.,]\d+)?$/, "Introduza um valor válido."),
+);
 
 const optionalDecimalText = decimalText.nullable().optional();
 const optionalNonNegativeDecimal = optionalDecimalText.refine(
