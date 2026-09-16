@@ -9,6 +9,7 @@ import {
   updateClientAction,
 } from "@/lib/backoffice/actions";
 import type { ClientSummary } from "@/lib/backoffice/data";
+import type { FormNumericValue } from "@/domain/quotes/format";
 import type { FieldErrors } from "@/lib/backoffice/validation";
 import { ConfirmDialog } from "./confirm-dialog";
 import { FormFieldError } from "./form-field-error";
@@ -34,14 +35,17 @@ const emptyForm: ClientForm = {
 };
 
 function formFromClient(client: ClientSummary): ClientForm {
+  const formText = (value: FormNumericValue): string =>
+    value === null || value === undefined || value === "" ? "" : String(value);
+
   return {
-    name: client.name,
-    email: client.email ?? "",
-    phone: client.phone ?? "",
-    address: client.address ?? "",
-    postalCode: client.postal_code ?? "",
-    locality: client.locality ?? "",
-    notes: client.notes ?? "",
+    name: formText(client.name),
+    email: formText(client.email),
+    phone: formText(client.phone),
+    address: formText(client.address),
+    postalCode: formText(client.postal_code),
+    locality: formText(client.locality),
+    notes: formText(client.notes),
   };
 }
 

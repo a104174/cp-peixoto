@@ -31,6 +31,21 @@ describe("validação de inputs do backoffice", () => {
     expect(rateToDecimalInput("0.1069")).toBe("10.69");
   });
 
+  it.each([
+    ["0.18", "18"],
+    [0.18, "18"],
+    ["10.69", "1069"],
+    [10.69, "1069"],
+    [0, "0"],
+    ["0", "0"],
+    [null, ""],
+    [undefined, ""],
+    ["", ""],
+  ])("formata com segurança a taxa %s", (value, expected) => {
+    expect(() => rateToDecimalInput(value)).not.toThrow();
+    expect(rateToDecimalInput(value)).toBe(expected);
+  });
+
   it("permite secções opcionais vazias num orçamento identificado", () => {
     const draft = createEmptyQuoteDraft();
     draft.description = "Reparação de cobertura";

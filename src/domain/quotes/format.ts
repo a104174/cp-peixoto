@@ -1,5 +1,19 @@
 import Decimal from "decimal.js";
 
+export type FormNumericValue = string | number | null | undefined;
+
+function formValueToString(value: FormNumericValue): string {
+  if (value === null || value === undefined || value === "") {
+    return "";
+  }
+
+  return String(value);
+}
+
+function normalizeFormValue(value: FormNumericValue): string {
+  return formValueToString(value).trim();
+}
+
 function groupedInteger(value: string): string {
   const negative = value.startsWith("-");
   const absolute = negative ? value.slice(1) : value;
@@ -31,8 +45,8 @@ export function formatPercent(value: string | number | null | undefined): string
   return `${formatNumber(decimal.mul(100).toString(), 2)}%`;
 }
 
-export function decimalInputToRate(value: string): string {
-  const normalized = value.trim().replace(",", ".");
+export function decimalInputToRate(value: FormNumericValue): string {
+  const normalized = normalizeFormValue(value).replace(",", ".");
   if (!normalized) {
     return "";
   }
@@ -40,20 +54,22 @@ export function decimalInputToRate(value: string): string {
   try {
     return new Decimal(normalized).div(100).toString();
   } catch {
-    return `invalid:${value}`;
+    return `invalid:${String(value)}`;
   }
 }
 
-export function rateToDecimalInput(value: string): string {
-  if (!value.trim()) {
+export function rateToDecimalInput(value: FormNumericValue): string {
+  const rawValue = formValueToString(value);
+  const normalized = rawValue.trim();
+  if (!normalized) {
     return "";
   }
-  if (value.startsWith("invalid:")) {
-    return value.slice("invalid:".length);
+  if (rawValue.startsWith("invalid:")) {
+    return rawValue.slice("invalid:".length);
   }
 
   try {
-    return new Decimal(value).mul(100).toFixed(4).replace(/\.?0+$/, "");
+    return new Decimal(normalized).mul(100).toFixed(4).replace(/\.?0+$/, "");
   } catch {
     return "";
   }

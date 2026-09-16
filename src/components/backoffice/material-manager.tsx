@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { decimalInputToRate, formatMoney, rateToDecimalInput } from "@/domain/quotes/format";
+import { decimalInputToRate, formatMoney, rateToDecimalInput, type FormNumericValue } from "@/domain/quotes/format";
 import {
   createMaterialAction,
   toggleMaterialActiveAction,
@@ -55,24 +55,27 @@ const emptyForm: MaterialForm = {
 };
 
 function formFromMaterial(material: MaterialSummary): MaterialForm {
+  const formText = (value: FormNumericValue): string =>
+    value === null || value === undefined || value === "" ? "" : String(value);
+
   return {
-    brand: material.brand,
-    name: material.name,
-    variant: material.variant ?? "",
-    category: material.category ?? "",
-    packageLabel: material.package_label ?? "",
-    packageQuantity: material.package_quantity ?? "",
-    packageUnit: material.package_unit ?? "",
+    brand: formText(material.brand),
+    name: formText(material.name),
+    variant: formText(material.variant),
+    category: formText(material.category),
+    packageLabel: formText(material.package_label),
+    packageQuantity: formText(material.package_quantity),
+    packageUnit: formText(material.package_unit),
     calculationType: material.calculation_type,
-    consumption: material.consumption ?? "",
-    consumptionUnit: material.consumption_unit ?? "",
-    unit: material.unit,
-    baseUnitPrice: material.base_unit_price ?? "",
-    discountedUnitPrice: material.discounted_unit_price ?? "",
-    basePackagePrice: material.base_package_price ?? "",
-    discountedPackagePrice: material.discounted_package_price ?? "",
-    discountRate: rateToDecimalInput(material.discount_rate ?? ""),
-    notes: material.notes ?? "",
+    consumption: formText(material.consumption),
+    consumptionUnit: formText(material.consumption_unit),
+    unit: formText(material.unit),
+    baseUnitPrice: formText(material.base_unit_price),
+    discountedUnitPrice: formText(material.discounted_unit_price),
+    basePackagePrice: formText(material.base_package_price),
+    discountedPackagePrice: formText(material.discounted_package_price),
+    discountRate: rateToDecimalInput(material.discount_rate),
+    notes: formText(material.notes),
   };
 }
 
