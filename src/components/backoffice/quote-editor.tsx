@@ -55,6 +55,7 @@ import { BackofficeDialog } from "./backoffice-dialog";
 import { ConfirmDialog } from "./confirm-dialog";
 import { FormFieldError } from "./form-field-error";
 import { BackofficeIcon } from "./backoffice-icon";
+import { QuotePdfButton } from "./quote-pdf-button";
 
 type QuoteEditorProps = {
   initialDraft: QuoteDraft;
@@ -613,6 +614,15 @@ export function QuoteEditor({
           <p className="bo-muted">Preencha os dados da obra e construa o cálculo por secções.</p>
         </div>
         <div className="bo-heading-actions">
+          {draft.id && draft.quoteNumber ? (
+            <QuotePdfButton
+              disabled={isDirty || isPending}
+              onError={(message) =>
+                setFeedback({ type: "error", message })
+              }
+              quoteId={draft.id}
+            />
+          ) : null}
           <button className="bo-button bo-button-primary" disabled={isPending} onClick={save} type="button">
             <BackofficeIcon name="save" size={16} /> {isPending ? "A guardar…" : "Guardar orçamento"}
           </button>

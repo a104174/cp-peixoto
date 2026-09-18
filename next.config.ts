@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* Configuration will grow with the public site in later phases. */
+  outputFileTracingIncludes: {
+    "/backoffice/orcamentos/[id]/pdf": [
+      "./public/brand/cp-peixoto-logo.png",
+    ],
+  },
 };
 
 export default nextConfig;
