@@ -4,18 +4,25 @@ import { listClients, listMaterials } from "@/lib/backoffice/data";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewQuotePage() {
-  const [clients, materials] = await Promise.all([
+export default async function NewQuotePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ client?: string }>;
+}) {
+  const [clients, materials, params] = await Promise.all([
     listClients(true),
     listMaterials(true),
+    searchParams,
   ]);
+  const selectedClientId = params.client && clients.some((client) => client.id === params.client)
+    ? params.client
+    : null;
 
   return (
     <QuoteEditor
       clients={clients}
-      initialDraft={createEmptyQuoteDraft()}
+      initialDraft={{ ...createEmptyQuoteDraft(), clientId: selectedClientId }}
       materials={materials}
     />
   );
 }
-

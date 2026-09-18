@@ -90,7 +90,13 @@ export default async function QuotesPage({
                   <tr key={quote.id}>
                     <td data-label="N.º orçamento"><Link className="bo-table-primary-link" href={`/backoffice/orcamentos/${quote.id}`}>{quote.quote_number}</Link></td>
                     <td data-label="Data">{formatDate(quote.quote_date)}</td>
-                    <td data-label="Cliente">{quote.client_name_snapshot ?? "Sem cliente"}</td>
+                    <td data-label="Cliente">
+                      {quote.client_id ? (
+                        <Link className="bo-table-primary-link" href={`/backoffice/clientes/${quote.client_id}`}>
+                          {quote.client_name_snapshot ?? "Ver cliente"}
+                        </Link>
+                      ) : quote.client_name_snapshot ?? "Sem cliente"}
+                    </td>
                     <td data-label="Local da obra">{quote.project_location ?? "—"}</td>
                     <td data-label="Área">{quote.area ? `${formatNumber(quote.area)} ${quote.area_unit}` : "—"}</td>
                     <td data-label="Valor líquido"><strong>{formatMoney(quote.net_value)}</strong></td>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import {
@@ -67,15 +68,18 @@ function clientFromForm(formData: FormData, id: string, active = true): ClientSu
 
 export function ClientManager({
   initialClients,
+  initialEditId,
 }: {
   initialClients: ClientSummary[];
+  initialEditId?: string;
 }) {
   const router = useRouter();
+  const initialEditClient = initialClients.find((client) => client.id === initialEditId);
   const [clients, setClients] = useState(initialClients);
   const [query, setQuery] = useState("");
   const [showInactive, setShowInactive] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<ClientForm>(emptyForm);
+  const [editingId, setEditingId] = useState<string | null>(initialEditClient?.id ?? null);
+  const [form, setForm] = useState<ClientForm>(() => initialEditClient ? formFromClient(initialEditClient) : emptyForm);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [clientToArchive, setClientToArchive] = useState<ClientSummary | null>(null);
@@ -348,7 +352,7 @@ export function ClientManager({
               <tbody>
                 {filtered.map((client) => (
                   <tr className={!client.is_active ? "is-inactive" : undefined} key={client.id}>
-                    <td data-label="Nome"><strong>{client.name}</strong></td>
+                    <td data-label="Nome"><Link className="bo-table-primary-link" href={`/backoffice/clientes/${client.id}`}>{client.name}</Link></td>
                     <td data-label="Contacto">
                       <span>{client.email ?? "—"}</span>
                       {client.phone ? <small className="bo-table-subtext">{client.phone}</small> : null}

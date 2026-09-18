@@ -3,9 +3,12 @@ import { listClients } from "@/lib/backoffice/data";
 
 export const dynamic = "force-dynamic";
 
-export default async function ClientsPage() {
-  const clients = await listClients(true);
+export default async function ClientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ edit?: string }>;
+}) {
+  const [clients, params] = await Promise.all([listClients(true), searchParams]);
 
-  return <ClientManager initialClients={clients} />;
+  return <ClientManager initialClients={clients} initialEditId={params.edit} />;
 }
-

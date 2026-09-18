@@ -520,6 +520,146 @@
 .bo-stat-card:hover .bo-stat-link svg {
   transform: translateX(2px);
 }
+.bo-client-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.bo-client-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.bo-client-summary-card {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  border: 1px solid var(--bo-border);
+  border-radius: var(--bo-radius-md);
+  background: var(--bo-surface);
+  box-shadow: var(--bo-shadow-sm);
+  padding: 18px 20px;
+}
+.bo-client-summary-card > span {
+  color: var(--bo-text-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+.bo-client-summary-card strong {
+  color: var(--bo-text);
+  font-size: 26px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.bo-client-summary-card small {
+  overflow: hidden;
+  color: var(--bo-text-subtle);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bo-client-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 330px) minmax(0, 1fr);
+  align-items: start;
+  gap: 18px;
+}
+.bo-client-information,
+.bo-client-history {
+  min-width: 0;
+}
+.bo-client-fields {
+  display: grid;
+  margin: 18px 0 0;
+}
+.bo-client-fields > div {
+  display: grid;
+  gap: 5px;
+  border-top: 1px solid #ebe8e1;
+  padding: 12px 0;
+}
+.bo-client-fields dt {
+  color: var(--bo-text-subtle);
+  font-size: 9px;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.bo-client-fields dd {
+  margin: 0;
+  color: var(--bo-text);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+.bo-client-fields .is-notes dd {
+  white-space: pre-wrap;
+}
+.bo-client-history > .bo-section-heading {
+  align-items: center;
+}
+.bo-client-quote-list-header,
+.bo-client-quote-row {
+  display: grid;
+  grid-template-columns: minmax(135px, 1.05fr) minmax(150px, 1.35fr) minmax(82px, 0.7fr) minmax(120px, 0.9fr) minmax(100px, 0.7fr);
+  align-items: center;
+  gap: 14px;
+}
+.bo-client-quote-list-header {
+  margin-top: 20px;
+  padding: 0 2px 9px;
+  color: var(--bo-text-subtle);
+  font-size: 9px;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.bo-client-quote-list {
+  border-top: 1px solid var(--bo-border);
+}
+.bo-client-quote-row {
+  border-bottom: 1px solid #ebe8e1;
+  color: var(--bo-text);
+  padding: 14px 2px;
+  text-decoration: none;
+  transition:
+    background-color 140ms var(--bo-ease),
+    color 140ms var(--bo-ease),
+    padding 140ms var(--bo-ease);
+}
+.bo-client-quote-row:last-child {
+  border-bottom: 0;
+}
+.bo-client-quote-row:hover,
+.bo-client-quote-row:focus-visible {
+  background: var(--bo-surface-muted);
+  color: var(--bo-accent-strong);
+  padding-right: 8px;
+  padding-left: 8px;
+}
+.bo-client-quote-cell {
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.35;
+}
+.bo-client-quote-cell strong {
+  color: inherit;
+  font-weight: 730;
+}
+.bo-client-quote-cell small {
+  display: none;
+}
+.bo-client-quote-value {
+  text-align: right;
+}
+.bo-client-empty-state {
+  min-height: 170px;
+  padding-right: 0;
+  padding-left: 0;
+}
 .bo-quick-actions {
   display: flex;
   align-items: center;
@@ -1843,6 +1983,9 @@ textarea.bo-input {
     padding-right: 28px;
     padding-left: 28px;
   }
+  .bo-client-detail-layout {
+    grid-template-columns: 1fr;
+  }
   .bo-quote-layout {
     grid-template-columns: 1fr;
   }
@@ -2030,6 +2173,9 @@ textarea.bo-input {
   .bo-stat-grid {
     grid-template-columns: 1fr;
   }
+  .bo-client-summary {
+    grid-template-columns: 1fr;
+  }
   .bo-stat-card {
     min-height: 135px;
   }
@@ -2055,6 +2201,47 @@ textarea.bo-input {
   }
   .bo-section-heading .bo-button {
     width: 100%;
+  }
+  .bo-client-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .bo-client-summary-card {
+    padding: 16px;
+  }
+  .bo-client-quote-list-header {
+    display: none;
+  }
+  .bo-client-quote-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 11px 15px;
+    padding: 14px 0;
+  }
+  .bo-client-quote-row:hover,
+  .bo-client-quote-row:focus-visible {
+    padding-right: 7px;
+    padding-left: 7px;
+  }
+  .bo-client-quote-cell {
+    display: grid;
+    gap: 3px;
+  }
+  .bo-client-quote-cell small {
+    display: block;
+    color: var(--bo-text-subtle);
+    font-size: 8px;
+    font-weight: 760;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+  .bo-client-quote-cell:first-child {
+    grid-column: 1 / -1;
+    border-bottom: 1px solid #ebe8e1;
+    padding-bottom: 9px;
+  }
+  .bo-client-quote-value {
+    text-align: left;
   }
   .bo-section-add-bottom {
     justify-content: stretch;

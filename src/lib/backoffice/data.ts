@@ -70,6 +70,22 @@ export type QuoteListItem = Pick<
   | "updated_at"
 >;
 
+export type ClientQuoteHistoryItem = Pick<
+  QuoteRow,
+  | "id"
+  | "quote_number"
+  | "project_location"
+  | "quote_date"
+  | "net_value"
+  | "real_margin"
+  | "updated_at"
+>;
+
+export type ClientWithQuotes = {
+  client: ClientSummary;
+  quotes: ClientQuoteHistoryItem[];
+};
+
 export type DashboardStats = {
   quotes: number;
   clients: number;
@@ -86,6 +102,8 @@ const quoteLineColumns =
   "id,quote_id,position,description,quantity,unit,unit_price,total_amount,note,created_at,updated_at";
 const quoteSurchargeColumns =
   "id,quote_id,position,name,base_type,rate,base_amount,amount,created_at,updated_at";
+const clientColumns =
+  "id,name,email,phone,address,postal_code,locality,notes,is_active";
 
 function asText(value: string | number | null | undefined): string {
   return value === null || value === undefined ? "" : String(value);
@@ -189,6 +207,45 @@ export async function listQuotes(): Promise<QuoteListItem[]> {
     }
 
     return data ?? [];
+  });
+}
+
+export async function getClientWithQuotes(id: string): Promise<ClientWithQuotes | null> {
+  return withPerf("client.detail", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) {
+      return null;
+    }
+
+    const [clientResult, quotesResult] = await Promise.all([
+      authenticated.client
+        .from("clients")
+        .select(clientColumns)
+        .eq("id", id)
+        .maybeSingle(),
+      authenticated.client
+        .from("quotes")
+        .select("id,quote_number,project_location,quote_date,net_value,real_margin,updated_at")
+        .eq("client_id", id)
+        .order("quote_date", { ascending: false })
+        .order("created_at", { ascending: false }),
+    ]);
+
+    const failed = [clientResult, quotesResult].find((result) => result.error);
+    perf.mark("queries", { calls: 2, ok: !failed });
+    if (failed?.error) {
+      loadFailed("load client detail", failed.error);
+    }
+
+    if (!clientResult.data) {
+      return null;
+    }
+
+    return {
+      client: clientResult.data,
+      quotes: quotesResult.data ?? [],
+    };
   });
 }
 
