@@ -192,6 +192,29 @@ export function ClientManager({
     });
   }
 
+  function openClient(clientId: string) {
+    router.push(`/backoffice/clientes/${clientId}`);
+  }
+
+  function handleClientRowClick(
+    event: React.MouseEvent<HTMLTableRowElement>,
+    clientId: string,
+  ) {
+    const target = event.target as HTMLElement;
+    if (target.closest("a,button,input,select,textarea")) return;
+    openClient(clientId);
+  }
+
+  function handleClientRowKeyDown(
+    event: React.KeyboardEvent<HTMLTableRowElement>,
+    clientId: string,
+  ) {
+    if (event.target !== event.currentTarget) return;
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    openClient(clientId);
+  }
+
   return (
     <div className="bo-page">
       <div className="bo-page-heading">
@@ -351,7 +374,14 @@ export function ClientManager({
               </thead>
               <tbody>
                 {filtered.map((client) => (
-                  <tr className={!client.is_active ? "is-inactive" : undefined} key={client.id}>
+                  <tr
+                    aria-label={`Abrir ficha de ${client.name}`}
+                    className={`bo-client-row${!client.is_active ? " is-inactive" : ""}`}
+                    key={client.id}
+                    onClick={(event) => handleClientRowClick(event, client.id)}
+                    onKeyDown={(event) => handleClientRowKeyDown(event, client.id)}
+                    tabIndex={0}
+                  >
                     <td data-label="Nome"><Link className="bo-table-primary-link" href={`/backoffice/clientes/${client.id}`}>{client.name}</Link></td>
                     <td data-label="Contacto">
                       <span>{client.email ?? "—"}</span>
@@ -365,12 +395,15 @@ export function ClientManager({
                     </td>
                     <td data-label="Ações">
                       <div className="bo-inline-actions">
-                        <button className="bo-link-button" onClick={() => startEdit(client)} type="button">
+                        <button className="bo-link-button" onClick={(event) => { event.stopPropagation(); startEdit(client); }} type="button">
                           <BackofficeIcon name="edit" size={14} /> Editar
                         </button>
-                        <button className="bo-link-button bo-link-danger" disabled={isPending} onClick={() => client.is_active ? setClientToArchive(client) : toggle(client)} type="button">
+                        <button className="bo-link-button bo-link-danger" disabled={isPending} onClick={(event) => { event.stopPropagation(); if (client.is_active) { setClientToArchive(client); } else { toggle(client); } }} type="button">
                           <BackofficeIcon name="archive" size={14} /> {client.is_active ? "Arquivar" : "Reativar"}
                         </button>
+                        <Link aria-label={`Abrir ficha de ${client.name}`} className="bo-client-row-chevron" href={`/backoffice/clientes/${client.id}`}>
+                          <BackofficeIcon name="arrow" size={16} />
+                        </Link>
                       </div>
                     </td>
                   </tr>

@@ -1048,6 +1048,34 @@ textarea.bo-input {
 .bo-table tbody tr:hover {
   background: #faf8f3;
 }
+.bo-table tbody tr.bo-client-row {
+  cursor: pointer;
+}
+.bo-table tbody tr.bo-client-row:focus-visible {
+  outline: 2px solid rgb(185 145 80 / 58%);
+  outline-offset: -2px;
+}
+.bo-client-row-chevron {
+  display: inline-flex;
+  min-width: 30px;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--bo-text-subtle);
+  text-decoration: none;
+  transition:
+    background-color 140ms var(--bo-ease),
+    color 140ms var(--bo-ease),
+    transform 140ms var(--bo-ease);
+}
+.bo-client-row:hover .bo-client-row-chevron,
+.bo-client-row-chevron:hover,
+.bo-client-row-chevron:focus-visible {
+  background: var(--bo-accent-soft);
+  color: var(--bo-accent-strong);
+  transform: translateX(2px);
+}
 .bo-table tbody tr:last-child td {
   border-bottom: 0;
 }
