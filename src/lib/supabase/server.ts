@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -35,35 +36,49 @@ export async function createSupabaseServerClient(): Promise<
   });
 }
 
-export async function getCurrentUser() {
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) {
-    return null;
-  }
+type AuthenticatedSupabase = {
+  client: SupabaseClient<Database>;
+  user: {
+    id: string;
+    email?: string;
+  };
+};
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+/**
+ * React's request cache deduplicates auth work shared by a protected layout,
+ * its page loader and sibling data loaders. The Supabase client remains
+ * request-scoped because this function still reads the current request's
+ * cookies before creating it.
+ */
+const getAuthenticatedSupabaseCached = cache(
+  async (): Promise<AuthenticatedSupabase | null> => {
+    const supabase = await createSupabaseServerClient();
+    if (!supabase) {
+      return null;
+    }
 
-  return user;
+    const { data } = await supabase.auth.getClaims();
+    const claims = data?.claims;
+    if (!claims) {
+      return null;
+    }
+
+    return {
+      client: supabase,
+      user: { id: claims.sub, email: claims.email },
+    };
+  },
+);
+
+const getCurrentUserCached = cache(async () => {
+  const authenticated = await getAuthenticatedSupabaseCached();
+  return authenticated?.user ?? null;
+});
+
+export function getCurrentUser(): ReturnType<typeof getCurrentUserCached> {
+  return getCurrentUserCached();
 }
 
-export async function getAuthenticatedSupabase(): Promise<{
-  client: SupabaseClient<Database>;
-  user: NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>;
-} | null> {
-  const supabase = await createSupabaseServerClient();
-  if (!supabase) {
-    return null;
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return null;
-  }
-
-  return { client: supabase, user };
+export function getAuthenticatedSupabase(): ReturnType<typeof getAuthenticatedSupabaseCached> {
+  return getAuthenticatedSupabaseCached();
 }

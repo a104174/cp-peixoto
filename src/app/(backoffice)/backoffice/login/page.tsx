@@ -5,6 +5,7 @@ import { BackofficeSetupNotice } from "@/components/backoffice/setup-notice";
 import { LoginForm } from "@/components/backoffice/login-form";
 import { getCurrentUser } from "@/lib/supabase/server";
 import { hasSupabaseConfig } from "@/lib/supabase/env";
+import { withPerf } from "@/lib/backoffice/perf";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,11 @@ export default async function BackofficeLoginPage({
     return <BackofficeSetupNotice />;
   }
 
-  const user = await getCurrentUser();
+  const user = await withPerf("login.page", async (perf) => {
+    const user = await getCurrentUser();
+    perf.mark("auth", { authenticated: Boolean(user) });
+    return user;
+  });
   if (user) {
     redirect("/backoffice");
   }

@@ -7,6 +7,7 @@ import Decimal from "decimal.js";
 import { calculateQuote } from "@/domain/quotes/calculations";
 import { clientInputSchema, materialInputSchema, quoteDraftSchema } from "./schemas";
 import { getAuthenticatedSupabase } from "@/lib/supabase/server";
+import { withPerf, type PerfTimer } from "@/lib/backoffice/perf";
 import type { Json } from "@/lib/supabase/database.types";
 import type { QuoteDraft } from "@/domain/quotes/types";
 import {
@@ -69,6 +70,7 @@ function materialIdsFromDraft(draft: QuoteDraft): string[] {
 async function verifyMaterialReferences(
   authenticated: Awaited<ReturnType<typeof getAuthenticatedSupabase>>,
   draft: QuoteDraft,
+  perf: PerfTimer,
 ): Promise<ActionResult | null> {
   const ids = materialIdsFromDraft(draft);
   if (ids.length === 0) return null;
@@ -80,6 +82,7 @@ async function verifyMaterialReferences(
     .from("materials")
     .select("id")
     .in("id", ids);
+  perf.mark("material-reference-query", { rows: data?.length ?? 0, ok: !error });
 
   if (error) {
     logDatabaseError("validate material references", error);
@@ -94,68 +97,23 @@ async function verifyMaterialReferences(
 }
 
 export async function createClientAction(formData: FormData): Promise<ActionResult> {
-  const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) return authRequired();
+  return withPerf("client.create", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) return authRequired();
 
-  const parsed = clientInputSchema.safeParse({
-    name: stringValue(formData, "name"),
-    email: stringValue(formData, "email"),
-    phone: stringValue(formData, "phone"),
-    address: stringValue(formData, "address"),
-    postalCode: stringValue(formData, "postalCode"),
-    locality: stringValue(formData, "locality"),
-    notes: stringValue(formData, "notes"),
-  });
-  if (!parsed.success) return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados.", fieldErrors: zodFieldErrors(parsed.error) };
+    const parsed = clientInputSchema.safeParse({
+      name: stringValue(formData, "name"),
+      email: stringValue(formData, "email"),
+      phone: stringValue(formData, "phone"),
+      address: stringValue(formData, "address"),
+      postalCode: stringValue(formData, "postalCode"),
+      locality: stringValue(formData, "locality"),
+      notes: stringValue(formData, "notes"),
+    });
+    if (!parsed.success) return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados.", fieldErrors: zodFieldErrors(parsed.error) };
 
-  const data = {
-    name: parsed.data.name,
-    email: parsed.data.email || null,
-    phone: parsed.data.phone || null,
-    address: parsed.data.address || null,
-    postal_code: parsed.data.postalCode || null,
-    locality: parsed.data.locality || null,
-    notes: parsed.data.notes || null,
-  };
-
-  const { data: created, error } = await authenticated.client
-    .from("clients")
-    .insert(data)
-    .select("id")
-    .single();
-  if (error) {
-    logDatabaseError("create client", error);
-    return { success: false, code: "SAVE_FAILED", message: "Não foi possível guardar o cliente." };
-  }
-
-  revalidatePath("/backoffice");
-  revalidatePath("/backoffice/clientes");
-  revalidatePath("/backoffice/orcamentos/novo");
-  return { success: true, id: created.id, message: "Cliente criado com sucesso." };
-}
-
-export async function updateClientAction(formData: FormData): Promise<ActionResult> {
-  const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) return authRequired();
-
-  const id = stringValue(formData, "id");
-  const parsedId = z.string().uuid().safeParse(id);
-  const parsed = clientInputSchema.safeParse({
-    name: stringValue(formData, "name"),
-    email: stringValue(formData, "email"),
-    phone: stringValue(formData, "phone"),
-    address: stringValue(formData, "address"),
-    postalCode: stringValue(formData, "postalCode"),
-    locality: stringValue(formData, "locality"),
-    notes: stringValue(formData, "notes"),
-  });
-  if (!parsedId.success || !parsed.success) {
-    return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados.", fieldErrors: parsed.success ? { id: "Cliente inválido." } : zodFieldErrors(parsed.error) };
-  }
-
-  const { error } = await authenticated.client
-    .from("clients")
-    .update({
+    const data = {
       name: parsed.data.name,
       email: parsed.data.email || null,
       phone: parsed.data.phone || null,
@@ -163,57 +121,115 @@ export async function updateClientAction(formData: FormData): Promise<ActionResu
       postal_code: parsed.data.postalCode || null,
       locality: parsed.data.locality || null,
       notes: parsed.data.notes || null,
-    })
-    .eq("id", id);
+    };
 
-  if (error) {
-    logDatabaseError("update client", error);
-    return { success: false, code: "SAVE_FAILED", message: "Não foi possível guardar o cliente." };
-  }
+    const { data: created, error } = await authenticated.client
+      .from("clients")
+      .insert(data)
+      .select("id")
+      .single();
+    perf.mark("query", { rows: created ? 1 : 0, ok: !error });
+    if (error) {
+      logDatabaseError("create client", error);
+      return { success: false, code: "SAVE_FAILED", message: "Não foi possível guardar o cliente." };
+    }
 
-  revalidatePath("/backoffice");
-  revalidatePath("/backoffice/clientes");
-  revalidatePath("/backoffice/orcamentos/novo");
-  revalidatePath("/backoffice/orcamentos", "page");
-  return { success: true, id, message: "Cliente atualizado." };
+    revalidatePath("/backoffice");
+    revalidatePath("/backoffice/clientes");
+    revalidatePath("/backoffice/orcamentos/novo");
+    return { success: true, id: created.id, message: "Cliente criado com sucesso." };
+  });
+}
+
+export async function updateClientAction(formData: FormData): Promise<ActionResult> {
+  return withPerf("client.update", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) return authRequired();
+
+    const id = stringValue(formData, "id");
+    const parsedId = z.string().uuid().safeParse(id);
+    const parsed = clientInputSchema.safeParse({
+      name: stringValue(formData, "name"),
+      email: stringValue(formData, "email"),
+      phone: stringValue(formData, "phone"),
+      address: stringValue(formData, "address"),
+      postalCode: stringValue(formData, "postalCode"),
+      locality: stringValue(formData, "locality"),
+      notes: stringValue(formData, "notes"),
+    });
+    if (!parsedId.success || !parsed.success) {
+      return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados.", fieldErrors: parsed.success ? { id: "Cliente inválido." } : zodFieldErrors(parsed.error) };
+    }
+
+    const { error } = await authenticated.client
+      .from("clients")
+      .update({
+        name: parsed.data.name,
+        email: parsed.data.email || null,
+        phone: parsed.data.phone || null,
+        address: parsed.data.address || null,
+        postal_code: parsed.data.postalCode || null,
+        locality: parsed.data.locality || null,
+        notes: parsed.data.notes || null,
+      })
+      .eq("id", id);
+    perf.mark("query", { ok: !error });
+
+    if (error) {
+      logDatabaseError("update client", error);
+      return { success: false, code: "SAVE_FAILED", message: "Não foi possível guardar o cliente." };
+    }
+
+    revalidatePath("/backoffice");
+    revalidatePath("/backoffice/clientes");
+    revalidatePath("/backoffice/orcamentos/novo");
+    revalidatePath("/backoffice/orcamentos", "page");
+    return { success: true, id, message: "Cliente atualizado." };
+  });
 }
 
 async function toggleActive(
   table: "clients" | "materials",
   id: string,
 ): Promise<ActionResult> {
-  const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) return authRequired();
+  return withPerf(`${table === "clients" ? "client" : "material"}.toggle`, async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) return authRequired();
 
-  const parsedId = z.string().uuid().safeParse(id);
-  if (!parsedId.success) return { success: false, code: "NOT_FOUND", message: "Registo não encontrado." };
+    const parsedId = z.string().uuid().safeParse(id);
+    if (!parsedId.success) return { success: false, code: "NOT_FOUND", message: "Registo não encontrado." };
 
-  const { data, error } = await authenticated.client
-    .from(table)
-    .select("is_active")
-    .eq("id", id)
-    .maybeSingle();
+    const { data, error } = await authenticated.client
+      .from(table)
+      .select("is_active")
+      .eq("id", id)
+      .maybeSingle();
+    perf.mark("state-query", { rows: data ? 1 : 0, ok: !error });
 
-  if (error) {
-    logDatabaseError("load record state", error);
-    return { success: false, code: "SAVE_FAILED", message: "Não foi possível alterar o estado." };
-  }
-  if (!data) return { success: false, code: "NOT_FOUND", message: "Registo não encontrado." };
+    if (error) {
+      logDatabaseError("load record state", error);
+      return { success: false, code: "SAVE_FAILED", message: "Não foi possível alterar o estado." };
+    }
+    if (!data) return { success: false, code: "NOT_FOUND", message: "Registo não encontrado." };
 
-  const { error: updateError } = await authenticated.client
-    .from(table)
-    .update({ is_active: !data.is_active })
-    .eq("id", id);
+    const { error: updateError } = await authenticated.client
+      .from(table)
+      .update({ is_active: !data.is_active })
+      .eq("id", id);
+    perf.mark("update", { ok: !updateError });
 
-  if (updateError) {
-    logDatabaseError("toggle record state", updateError);
-    return { success: false, code: "SAVE_FAILED", message: "Não foi possível alterar o estado." };
-  }
+    if (updateError) {
+      logDatabaseError("toggle record state", updateError);
+      return { success: false, code: "SAVE_FAILED", message: "Não foi possível alterar o estado." };
+    }
 
-  revalidatePath("/backoffice");
-  revalidatePath(`/backoffice/${table === "clients" ? "clientes" : "materiais"}`);
-  revalidatePath("/backoffice/orcamentos/novo");
-  return { success: true };
+    revalidatePath("/backoffice");
+    revalidatePath(`/backoffice/${table === "clients" ? "clientes" : "materiais"}`);
+    revalidatePath("/backoffice/orcamentos/novo");
+    return { success: true };
+  });
 }
 
 export async function toggleClientActiveAction(id: string): Promise<ActionResult> {
@@ -269,52 +285,60 @@ function toMaterialRow(input: z.infer<typeof materialInputSchema>) {
 }
 
 export async function createMaterialAction(formData: FormData): Promise<ActionResult> {
-  const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) return authRequired();
+  return withPerf("material.create", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) return authRequired();
 
-  const parsed = materialInputSchema.safeParse(readMaterialInput(formData));
-  if (!parsed.success) return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados.", fieldErrors: zodFieldErrors(parsed.error) };
+    const parsed = materialInputSchema.safeParse(readMaterialInput(formData));
+    if (!parsed.success) return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados.", fieldErrors: zodFieldErrors(parsed.error) };
 
-  const { data: created, error } = await authenticated.client
-    .from("materials")
-    .insert(toMaterialRow(parsed.data))
-    .select("id")
-    .single();
-  if (error) {
-    logDatabaseError("create material", error);
-    return { success: false, code: "SAVE_FAILED", message: "Não foi possível guardar o material." };
-  }
+    const { data: created, error } = await authenticated.client
+      .from("materials")
+      .insert(toMaterialRow(parsed.data))
+      .select("id")
+      .single();
+    perf.mark("query", { rows: created ? 1 : 0, ok: !error });
+    if (error) {
+      logDatabaseError("create material", error);
+      return { success: false, code: "SAVE_FAILED", message: "Não foi possível guardar o material." };
+    }
 
-  revalidatePath("/backoffice");
-  revalidatePath("/backoffice/materiais");
-  revalidatePath("/backoffice/orcamentos/novo");
-  return { success: true, id: created.id, message: "Material criado com sucesso." };
+    revalidatePath("/backoffice");
+    revalidatePath("/backoffice/materiais");
+    revalidatePath("/backoffice/orcamentos/novo");
+    return { success: true, id: created.id, message: "Material criado com sucesso." };
+  });
 }
 
 export async function updateMaterialAction(formData: FormData): Promise<ActionResult> {
-  const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) return authRequired();
+  return withPerf("material.update", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) return authRequired();
 
-  const id = stringValue(formData, "id");
-  const parsedId = z.string().uuid().safeParse(id);
-  const parsed = materialInputSchema.safeParse(readMaterialInput(formData));
-  if (!parsedId.success || !parsed.success) return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados.", fieldErrors: parsed.success ? { id: "Material inválido." } : zodFieldErrors(parsed.error) };
+    const id = stringValue(formData, "id");
+    const parsedId = z.string().uuid().safeParse(id);
+    const parsed = materialInputSchema.safeParse(readMaterialInput(formData));
+    if (!parsedId.success || !parsed.success) return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados.", fieldErrors: parsed.success ? { id: "Material inválido." } : zodFieldErrors(parsed.error) };
 
-  const { error } = await authenticated.client
-    .from("materials")
-    .update(toMaterialRow(parsed.data))
-    .eq("id", id);
+    const { error } = await authenticated.client
+      .from("materials")
+      .update(toMaterialRow(parsed.data))
+      .eq("id", id);
+    perf.mark("query", { ok: !error });
 
-  if (error) {
-    logDatabaseError("update material", error);
-    return { success: false, code: "SAVE_FAILED", message: "Não foi possível guardar o material." };
-  }
+    if (error) {
+      logDatabaseError("update material", error);
+      return { success: false, code: "SAVE_FAILED", message: "Não foi possível guardar o material." };
+    }
 
-  revalidatePath("/backoffice");
-  revalidatePath("/backoffice/materiais");
-  revalidatePath("/backoffice/orcamentos/novo");
-  revalidatePath("/backoffice/orcamentos", "layout");
-  return { success: true, id, message: "Material atualizado." };
+    revalidatePath("/backoffice");
+    revalidatePath("/backoffice/materiais");
+    revalidatePath("/backoffice/orcamentos/novo");
+    revalidatePath("/backoffice/orcamentos", "layout");
+    return { success: true, id, message: "Material atualizado." };
+  });
 }
 
 function numericJson(value: string): string {
@@ -415,37 +439,42 @@ export type SaveQuoteResult = ActionResult & {
 };
 
 export async function saveQuoteAction(input: unknown): Promise<SaveQuoteResult> {
-  const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) return authRequired();
+  return withPerf("quote.save", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) return authRequired();
 
-  const parsed = quoteDraftSchema.safeParse(input);
-  if (!parsed.success) return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados e tente novamente.", fieldErrors: zodFieldErrors(parsed.error) };
+    const parsed = quoteDraftSchema.safeParse(input);
+    if (!parsed.success) return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados e tente novamente.", fieldErrors: zodFieldErrors(parsed.error) };
 
-  const draft = parsed.data as QuoteDraft;
-  const fieldErrors = validateQuoteDraft(draft);
-  if (Object.keys(fieldErrors).length > 0) {
-    return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados e tente novamente.", fieldErrors };
-  }
+    const draft = parsed.data as QuoteDraft;
+    const fieldErrors = validateQuoteDraft(draft);
+    perf.mark("validation", { ok: Object.keys(fieldErrors).length === 0 });
+    if (Object.keys(fieldErrors).length > 0) {
+      return { success: false, code: "VALIDATION_ERROR", message: "Verifique os campos assinalados e tente novamente.", fieldErrors };
+    }
 
-  const referenceError = await verifyMaterialReferences(authenticated, draft);
-  if (referenceError) return referenceError;
+    const referenceError = await verifyMaterialReferences(authenticated, draft, perf);
+    if (referenceError) return referenceError;
 
-  const result = calculateQuote(draft);
-  const { data, error } = await authenticated.client.rpc("save_quote", {
-    payload: quotePersistPayload(draft, result),
+    const result = calculateQuote(draft);
+    const { data, error } = await authenticated.client.rpc("save_quote", {
+      payload: quotePersistPayload(draft, result),
+    });
+    perf.mark("rpc", { rows: data ? 1 : 0, ok: !error && Boolean(data) });
+
+    if (error || !data) {
+      if (error) logDatabaseError("save quote", error);
+      return {
+        success: false,
+        code: "SAVE_FAILED",
+        message: "Não foi possível guardar o orçamento. Tente novamente.",
+      };
+    }
+
+    revalidatePath("/backoffice");
+    revalidatePath("/backoffice/orcamentos");
+    revalidatePath(`/backoffice/orcamentos/${data.id}`);
+    return { success: true, quoteId: data.id, quoteNumber: data.quote_number, message: draft.id ? "Alterações guardadas." : `Orçamento ${data.quote_number} criado com sucesso.` };
   });
-
-  if (error || !data) {
-    if (error) logDatabaseError("save quote", error);
-    return {
-      success: false,
-      code: "SAVE_FAILED",
-      message: "Não foi possível guardar o orçamento. Tente novamente.",
-    };
-  }
-
-  revalidatePath("/backoffice");
-  revalidatePath("/backoffice/orcamentos");
-  revalidatePath(`/backoffice/orcamentos/${data.id}`);
-  return { success: true, quoteId: data.id, quoteNumber: data.quote_number, message: draft.id ? "Alterações guardadas." : `Orçamento ${data.quote_number} criado com sucesso.` };
 }

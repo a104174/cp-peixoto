@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { getSupabasePublicEnv } from "@/lib/supabase/env";
+import { startPerf } from "@/lib/backoffice/perf";
 
 function loginRedirect(request: NextRequest): NextResponse {
   const loginUrl = new URL("/backoffice/login", request.url);
@@ -18,8 +19,10 @@ function loginRedirect(request: NextRequest): NextResponse {
 }
 
 export async function proxy(request: NextRequest): Promise<NextResponse> {
+  const perf = startPerf("proxy");
   const env = getSupabasePublicEnv();
   if (!env) {
+    perf.end({ configured: false });
     return NextResponse.next();
   }
 
@@ -38,19 +41,22 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getClaims();
+  const user = data?.claims;
+  perf.mark("auth", { authenticated: Boolean(user) });
 
   const isLogin = request.nextUrl.pathname === "/backoffice/login";
   if (!user && !isLogin) {
+    perf.end();
     return loginRedirect(request);
   }
 
   if (user && isLogin) {
+    perf.end();
     return NextResponse.redirect(new URL("/backoffice", request.url));
   }
 
+  perf.end();
   return response;
 }
 

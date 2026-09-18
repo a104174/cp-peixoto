@@ -11,6 +11,7 @@ import type {
   QuoteSurchargeRow,
 } from "@/lib/supabase/database.types";
 import { getAuthenticatedSupabase } from "@/lib/supabase/server";
+import { withPerf } from "@/lib/backoffice/perf";
 
 import Decimal from "decimal.js";
 import type {
@@ -106,107 +107,123 @@ function loadFailed(operation: string, error: { code?: string; message: string }
 export async function listClients(
   includeInactive = false,
 ): Promise<ClientSummary[]> {
-  const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) {
-    return [];
-  }
+  return withPerf("clients.load", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) {
+      return [];
+    }
 
-  let query = authenticated.client
-    .from("clients")
-    .select(
-      "id,name,email,phone,address,postal_code,locality,notes,is_active",
-    )
-    .order("name", { ascending: true });
+    let query = authenticated.client
+      .from("clients")
+      .select(
+        "id,name,email,phone,address,postal_code,locality,notes,is_active",
+      )
+      .order("name", { ascending: true });
 
-  if (!includeInactive) {
-    query = query.eq("is_active", true);
-  }
+    if (!includeInactive) {
+      query = query.eq("is_active", true);
+    }
 
-  const { data, error } = await query;
-  if (error) {
-    loadFailed("load clients", error);
-  }
+    const { data, error } = await query;
+    perf.mark("query", { rows: data?.length ?? 0, ok: !error });
+    if (error) {
+      loadFailed("load clients", error);
+    }
 
-  return data ?? [];
+    return data ?? [];
+  });
 }
 
 export async function listMaterials(
   includeInactive = false,
 ): Promise<MaterialSummary[]> {
-  const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) {
-    return [];
-  }
+  return withPerf("materials.load", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) {
+      return [];
+    }
 
-  let query = authenticated.client
-    .from("materials")
-    .select(
-      "id,brand,name,variant,category,package_label,package_quantity,package_unit,calculation_type,consumption,consumption_unit,unit,base_unit_price,discounted_unit_price,base_package_price,discounted_package_price,discount_rate,notes,is_active",
-    )
-    .order("name", { ascending: true })
-    .order("variant", { ascending: true })
-    .order("package_label", { ascending: true });
+    let query = authenticated.client
+      .from("materials")
+      .select(
+        "id,brand,name,variant,category,package_label,package_quantity,package_unit,calculation_type,consumption,consumption_unit,unit,base_unit_price,discounted_unit_price,base_package_price,discounted_package_price,discount_rate,notes,is_active",
+      )
+      .order("name", { ascending: true })
+      .order("variant", { ascending: true })
+      .order("package_label", { ascending: true });
 
-  if (!includeInactive) {
-    query = query.eq("is_active", true);
-  }
+    if (!includeInactive) {
+      query = query.eq("is_active", true);
+    }
 
-  const { data, error } = await query;
-  if (error) {
-    loadFailed("load materials", error);
-  }
+    const { data, error } = await query;
+    perf.mark("query", { rows: data?.length ?? 0, ok: !error });
+    if (error) {
+      loadFailed("load materials", error);
+    }
 
-  return data ?? [];
+    return data ?? [];
+  });
 }
 
 export async function listQuotes(): Promise<QuoteListItem[]> {
-  const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) {
-    return [];
-  }
+  return withPerf("quotes.load", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) {
+      return [];
+    }
 
-  const { data, error } = await authenticated.client
-    .from("quotes")
-    .select(
-      "id,quote_number,client_id,client_name_snapshot,project_location,quote_date,area,area_unit,net_value,updated_at",
-    )
-    .order("created_at", { ascending: false });
+    const { data, error } = await authenticated.client
+      .from("quotes")
+      .select(
+        "id,quote_number,client_id,client_name_snapshot,project_location,quote_date,area,area_unit,net_value,updated_at",
+      )
+      .order("created_at", { ascending: false });
 
-  if (error) {
-    loadFailed("load quotes", error);
-  }
+    perf.mark("query", { rows: data?.length ?? 0, ok: !error });
+    if (error) {
+      loadFailed("load quotes", error);
+    }
 
-  return data ?? [];
+    return data ?? [];
+  });
 }
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) {
-    return { quotes: 0, clients: 0, materials: 0 };
-  }
+  return withPerf("dashboard.load", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) {
+      return { quotes: 0, clients: 0, materials: 0 };
+    }
 
-  const [quotes, clients, materials] = await Promise.all([
-    authenticated.client.from("quotes").select("id", { count: "exact", head: true }),
-    authenticated.client
-      .from("clients")
-      .select("id", { count: "exact", head: true })
-      .eq("is_active", true),
-    authenticated.client
-      .from("materials")
-      .select("id", { count: "exact", head: true })
-      .eq("is_active", true),
-  ]);
+    const [quotes, clients, materials] = await Promise.all([
+      authenticated.client.from("quotes").select("id", { count: "exact", head: true }),
+      authenticated.client
+        .from("clients")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true),
+      authenticated.client
+        .from("materials")
+        .select("id", { count: "exact", head: true })
+        .eq("is_active", true),
+    ]);
 
-  const failed = [quotes, clients, materials].find((result) => result.error);
-  if (failed?.error) {
-    loadFailed("load dashboard", failed.error);
-  }
+    const failed = [quotes, clients, materials].find((result) => result.error);
+    perf.mark("queries", { calls: 3, ok: !failed });
+    if (failed?.error) {
+      loadFailed("load dashboard", failed.error);
+    }
 
-  return {
-    quotes: quotes.count ?? 0,
-    clients: clients.count ?? 0,
-    materials: materials.count ?? 0,
-  };
+    return {
+      quotes: quotes.count ?? 0,
+      clients: clients.count ?? 0,
+      materials: materials.count ?? 0,
+    };
+  });
 }
 
 export type QuoteWithLines = {
@@ -219,65 +236,69 @@ export type QuoteWithLines = {
 };
 
 export async function getQuoteById(id: string): Promise<QuoteWithLines | null> {
-  const authenticated = await getAuthenticatedSupabase();
-  if (!authenticated) {
-    return null;
-  }
+  return withPerf("quote.load", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) {
+      return null;
+    }
 
-  const [quoteResult, materialsResult, laborResult, subcontractResult, equipmentResult, surchargeResult] =
-    await Promise.all([
-      authenticated.client.from("quotes").select(quoteColumns).eq("id", id).maybeSingle(),
-      authenticated.client
-        .from("quote_materials")
-        .select(quoteMaterialColumns)
-        .eq("quote_id", id)
-        .order("position", { ascending: true }),
-      authenticated.client
-        .from("quote_labor")
-        .select(quoteLaborColumns)
-        .eq("quote_id", id)
-        .order("position", { ascending: true }),
-      authenticated.client
-        .from("quote_subcontracts")
-        .select(quoteLineColumns)
-        .eq("quote_id", id)
-        .order("position", { ascending: true }),
-      authenticated.client
-        .from("quote_equipment")
-        .select(quoteLineColumns)
-        .eq("quote_id", id)
-        .order("position", { ascending: true }),
-      authenticated.client
-        .from("quote_surcharges")
-        .select(quoteSurchargeColumns)
-        .eq("quote_id", id)
-        .order("position", { ascending: true }),
-    ]);
+    const [quoteResult, materialsResult, laborResult, subcontractResult, equipmentResult, surchargeResult] =
+      await Promise.all([
+        authenticated.client.from("quotes").select(quoteColumns).eq("id", id).maybeSingle(),
+        authenticated.client
+          .from("quote_materials")
+          .select(quoteMaterialColumns)
+          .eq("quote_id", id)
+          .order("position", { ascending: true }),
+        authenticated.client
+          .from("quote_labor")
+          .select(quoteLaborColumns)
+          .eq("quote_id", id)
+          .order("position", { ascending: true }),
+        authenticated.client
+          .from("quote_subcontracts")
+          .select(quoteLineColumns)
+          .eq("quote_id", id)
+          .order("position", { ascending: true }),
+        authenticated.client
+          .from("quote_equipment")
+          .select(quoteLineColumns)
+          .eq("quote_id", id)
+          .order("position", { ascending: true }),
+        authenticated.client
+          .from("quote_surcharges")
+          .select(quoteSurchargeColumns)
+          .eq("quote_id", id)
+          .order("position", { ascending: true }),
+      ]);
 
-  const failed = [
-    quoteResult,
-    materialsResult,
-    laborResult,
-    subcontractResult,
-    equipmentResult,
-    surchargeResult,
-  ].find((result) => result.error);
-  if (failed?.error) {
-    loadFailed("load quote", failed.error);
-  }
+    const failed = [
+      quoteResult,
+      materialsResult,
+      laborResult,
+      subcontractResult,
+      equipmentResult,
+      surchargeResult,
+    ].find((result) => result.error);
+    perf.mark("queries", { calls: 6, ok: !failed });
+    if (failed?.error) {
+      loadFailed("load quote", failed.error);
+    }
 
-  if (!quoteResult.data) {
-    return null;
-  }
+    if (!quoteResult.data) {
+      return null;
+    }
 
-  return {
-    quote: quoteResult.data,
-    materials: materialsResult.data ?? [],
-    labor: laborResult.data ?? [],
-    subcontracts: subcontractResult.data ?? [],
-    equipment: equipmentResult.data ?? [],
-    surcharges: surchargeResult.data ?? [],
-  };
+    return {
+      quote: quoteResult.data,
+      materials: materialsResult.data ?? [],
+      labor: laborResult.data ?? [],
+      subcontracts: subcontractResult.data ?? [],
+      equipment: equipmentResult.data ?? [],
+      surcharges: surchargeResult.data ?? [],
+    };
+  });
 }
 
 export function mapQuoteToDraft(value: QuoteWithLines): QuoteDraft {
