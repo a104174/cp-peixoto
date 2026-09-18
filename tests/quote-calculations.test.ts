@@ -105,6 +105,22 @@ describe("quote calculation engine", () => {
     expect(result.materials.total).toBe("1170");
   });
 
+  it("calculates a free material without a catalog id or unit", () => {
+    const freeMaterial = material(0, "10", "20", "per_m2");
+    freeMaterial.materialId = null;
+    freeMaterial.materialNameSnapshot = "Pedra";
+    freeMaterial.unit = "";
+    freeMaterial.areaFactor = "10";
+    freeMaterial.areaFactorOverridden = true;
+
+    const result = calculateQuote(baseDraft({ materials: [freeMaterial] }));
+
+    expect(result.materials.lines[0]).toEqual({
+      areaFactor: "10",
+      costTotal: "2000",
+    });
+  });
+
   it("calculates a fixed material with factor 1", () => {
     const result = calculateQuote(
       baseDraft({
@@ -115,6 +131,19 @@ describe("quote calculation engine", () => {
     expect(result.materials.lines[0]).toEqual({
       areaFactor: "1",
       costTotal: "30",
+    });
+  });
+
+  it("calculates a free fixed material without a unit", () => {
+    const freeMaterial = material(0, "10", "20", "fixed");
+    freeMaterial.materialNameSnapshot = "Pedra fixa";
+    freeMaterial.unit = "";
+
+    const result = calculateQuote(baseDraft({ materials: [freeMaterial] }));
+
+    expect(result.materials.lines[0]).toEqual({
+      areaFactor: "1",
+      costTotal: "200",
     });
   });
 

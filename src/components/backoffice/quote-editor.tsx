@@ -18,9 +18,18 @@ import {
   newId,
 } from "@/domain/quotes/defaults";
 import {
+  knownMaterialUnit,
+  normalizeMaterialUnit,
+  QUOTE_MATERIAL_UNIT_OPTIONS,
+} from "@/domain/quotes/material-units";
+import {
   calculateQuote,
   type CalculationWarning,
 } from "@/domain/quotes/calculations";
+import {
+  attachCatalogMaterial,
+  materialNameOverride,
+} from "@/domain/quotes/material-catalog";
 import {
   decimalInputToRate,
   formatMoney,
@@ -37,6 +46,7 @@ import type {
 } from "@/domain/quotes/types";
 import {
   createClientAction,
+  createMaterialFromQuoteAction,
   saveQuoteAction,
 } from "@/lib/backoffice/actions";
 import type { ClientSummary, MaterialSummary } from "@/lib/backoffice/data";
@@ -51,6 +61,28 @@ type QuoteEditorProps = {
   materials: MaterialSummary[];
   successMessage?: string;
 };
+
+type QuickMaterialForm = {
+  brand: string;
+  name: string;
+  variant: string;
+  category: string;
+  packageLabel: string;
+  packageQuantity: string;
+  packageUnit: string;
+  calculationType: QuoteMaterialDraft["calculationType"];
+  consumption: string;
+  consumptionUnit: string;
+  unit: string;
+  baseUnitPrice: string;
+  discountedUnitPrice: string;
+  basePackagePrice: string;
+  discountedPackagePrice: string;
+  discountRate: string;
+  notes: string;
+};
+
+const CUSTOM_UNIT_VALUE = "__custom__";
 
 const surchargeBaseLabels: Record<QuoteSurchargeDraft["baseType"], string> = {
   subcontracts: "Subempreitadas",
@@ -70,6 +102,32 @@ function materialLabel(material: MaterialSummary): string {
 
 function materialSuggestedPrice(material: MaterialSummary): string {
   return material.discounted_unit_price ?? material.base_unit_price ?? "0";
+}
+
+function normalizedMaterialSearch(value: string): string {
+  return value.trim().toLocaleLowerCase("pt-PT");
+}
+
+function quickMaterialFormFromLine(line: QuoteMaterialDraft): QuickMaterialForm {
+  return {
+    brand: "",
+    name: line.materialNameSnapshot,
+    variant: line.variantSnapshot,
+    category: "",
+    packageLabel: line.packageSnapshot,
+    packageQuantity: "",
+    packageUnit: "",
+    calculationType: line.calculationType,
+    consumption: line.consumptionOrQuantity,
+    consumptionUnit: "",
+    unit: normalizeMaterialUnit(line.unit),
+    baseUnitPrice: "",
+    discountedUnitPrice: line.unitPrice,
+    basePackagePrice: "",
+    discountedPackagePrice: "",
+    discountRate: "",
+    notes: line.notes,
+  };
 }
 
 function updateArray<T extends { id: string }>(
@@ -105,6 +163,10 @@ export function QuoteEditor({
   const [materialSearch, setMaterialSearch] = useState<Record<string, string>>({});
   const [activeMaterialRow, setActiveMaterialRow] = useState<string | null>(null);
   const [materialActiveIndex, setMaterialActiveIndex] = useState(0);
+  const [customUnitRows, setCustomUnitRows] = useState<Record<string, boolean>>({});
+  const [quickMaterialRowId, setQuickMaterialRowId] = useState<string | null>(null);
+  const [quickMaterialForm, setQuickMaterialForm] = useState<QuickMaterialForm | null>(null);
+  const [quickMaterialErrors, setQuickMaterialErrors] = useState<FieldErrors>({});
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [quickClientErrors, setQuickClientErrors] = useState<FieldErrors>({});
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(
@@ -201,6 +263,66 @@ export function QuoteEditor({
     setClientOptionsOpen(false);
   }
 
+  function openQuickMaterial(row: QuoteMaterialDraft) {
+    setQuickMaterialRowId(row.id);
+    setQuickMaterialForm(quickMaterialFormFromLine(row));
+    setQuickMaterialErrors({});
+  }
+
+  function closeQuickMaterial() {
+    setQuickMaterialRowId(null);
+    setQuickMaterialForm(null);
+    setQuickMaterialErrors({});
+  }
+
+  function updateQuickMaterialField(field: keyof QuickMaterialForm, value: string) {
+    setQuickMaterialForm((current) => current ? { ...current, [field]: value } : current);
+    setQuickMaterialErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+  }
+
+  function createQuickMaterial(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!quickMaterialRowId) return;
+
+    const rowId = quickMaterialRowId;
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    setQuickMaterialErrors({});
+
+    startTransition(async () => {
+      const result = await createMaterialFromQuoteAction(formData);
+      if (!result.success) {
+        if (result.code === "AUTH_REQUIRED") {
+          router.push("/backoffice/login?reason=session-expired");
+          return;
+        }
+        setQuickMaterialErrors(result.fieldErrors ?? {});
+        setFeedback({ type: "error", message: result.message });
+        return;
+      }
+
+      const createdMaterialId = result.id;
+      if (createdMaterialId) {
+        setDraft((current) => ({
+          ...current,
+          materials: updateArray(current.materials, rowId, attachCatalogMaterial(createdMaterialId)),
+        }));
+        setMaterialSearch((current) => ({
+          ...current,
+          [rowId]: current[rowId] ?? String(formData.get("name") ?? ""),
+        }));
+      }
+      setFeedback({ type: "success", message: result.message ?? "Material adicionado ao catálogo." });
+      closeQuickMaterial();
+      router.refresh();
+    });
+  }
+
   function addMaterial() {
     setDraft((current) => ({
       ...current,
@@ -226,7 +348,7 @@ export function QuoteEditor({
       packageSnapshot: material.package_label ?? "",
       calculationType: material.calculation_type,
       consumptionOrQuantity: material.consumption ?? "0",
-      unit: material.unit,
+      unit: normalizeMaterialUnit(material.unit),
       unitPrice: materialSuggestedPrice(material),
       areaFactor: factor,
       areaFactorOverridden: false,
@@ -236,7 +358,43 @@ export function QuoteEditor({
       ...current,
       [row.id]: materialLabel(material),
     }));
+    setCustomUnitRows((current) => {
+      if (!current[row.id]) return current;
+      const next = { ...current };
+      delete next[row.id];
+      return next;
+    });
     setActiveMaterialRow(null);
+  }
+
+  function updateMaterialUnit(rowId: string, value: string) {
+    if (value === CUSTOM_UNIT_VALUE) {
+      setCustomUnitRows((current) => ({ ...current, [rowId]: true }));
+      patchMaterial(rowId, { unit: "" });
+      return;
+    }
+
+    setCustomUnitRows((current) => {
+      if (!current[rowId]) return current;
+      const next = { ...current };
+      delete next[rowId];
+      return next;
+    });
+    patchMaterial(rowId, { unit: normalizeMaterialUnit(value) });
+  }
+
+  function updateCustomMaterialUnit(rowId: string, value: string) {
+    const normalized = normalizeMaterialUnit(value);
+    const known = knownMaterialUnit(normalized);
+    if (known) {
+      setCustomUnitRows((current) => {
+        if (!current[rowId]) return current;
+        const next = { ...current };
+        delete next[rowId];
+        return next;
+      });
+    }
+    patchMaterial(rowId, { unit: normalized });
   }
 
   function updateArea(value: string) {
@@ -260,6 +418,12 @@ export function QuoteEditor({
         .map((line, index) => ({ ...line, position: index })),
     }));
     setMaterialSearch((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+    setCustomUnitRows((current) => {
+      if (!current[id]) return current;
       const next = { ...current };
       delete next[id];
       return next;
@@ -622,16 +786,26 @@ export function QuoteEditor({
                 {draft.materials.map((line, index) => {
                   const lineResult = calculation.materials.lines[index];
                   const search = materialSearch[line.id] ?? line.materialNameSnapshot;
+                  const normalizedSearch = normalizedMaterialSearch(search);
                   const options = materials
                     .filter((material) => {
                       if (!material.is_active && material.id !== line.materialId) return false;
-                      const query = search.trim().toLocaleLowerCase("pt-PT");
-                      if (!query) return true;
+                      if (!normalizedSearch) return true;
                       return [material.name, material.variant, material.package_label, material.brand]
                         .filter(Boolean)
-                        .some((value) => value?.toLocaleLowerCase("pt-PT").includes(query));
+                        .some((value) => value?.toLocaleLowerCase("pt-PT").includes(normalizedSearch));
                     })
                     .slice(0, 8);
+                  const hasExactCatalogMatch = materials.some((material) =>
+                    material.is_active &&
+                    [material.name, materialLabel(material)].some(
+                      (value) => normalizedMaterialSearch(value) === normalizedSearch,
+                    ),
+                  );
+                  const isFreeMaterial = Boolean(line.materialNameSnapshot.trim() && !line.materialId);
+                  const knownUnit = knownMaterialUnit(line.unit);
+                  const isCustomUnit = customUnitRows[line.id] ?? Boolean(line.unit && !knownUnit);
+                  const unitSelectValue = isCustomUnit ? CUSTOM_UNIT_VALUE : knownUnit ?? "";
 
                   return (
                     <article className="bo-line-card" key={line.id}>
@@ -655,10 +829,11 @@ export function QuoteEditor({
                             id={`material-${line.id}`}
                             onBlur={() => window.setTimeout(() => setActiveMaterialRow(null), 120)}
                             onChange={(event) => {
-                              setMaterialSearch((current) => ({ ...current, [line.id]: event.target.value }));
+                              const value = event.target.value;
+                              setMaterialSearch((current) => ({ ...current, [line.id]: value }));
                               setActiveMaterialRow(line.id);
                               setMaterialActiveIndex(0);
-                              if (!event.target.value) {
+                              if (!value) {
                                 patchMaterial(line.id, {
                                   materialId: null,
                                   materialNameSnapshot: "",
@@ -672,6 +847,14 @@ export function QuoteEditor({
                                   areaFactorOverridden: false,
                                   notes: "",
                                 });
+                                setCustomUnitRows((current) => {
+                                  if (!current[line.id]) return current;
+                                  const next = { ...current };
+                                  delete next[line.id];
+                                  return next;
+                                });
+                              } else {
+                                patchMaterial(line.id, materialNameOverride(value));
                               }
                             }}
                             onFocus={() => {
@@ -719,6 +902,19 @@ export function QuoteEditor({
                               )) : <div className="bo-combobox-empty"><p>Nenhum material encontrado.</p><Link href="/backoffice/materiais">Gerir materiais</Link></div>}
                             </div>
                           ) : null}
+                          {isFreeMaterial ? (
+                            <div className="bo-material-free-state">
+                              <div>
+                                <span className="bo-status is-neutral">Material livre</span>
+                                <small>{hasExactCatalogMatch ? "Pode continuar sem o adicionar ao catálogo." : "Material não registado no catálogo."}</small>
+                              </div>
+                              {!hasExactCatalogMatch ? (
+                                <button className="bo-link-button" onClick={() => openQuickMaterial(line)} type="button">
+                                  + Guardar no catálogo
+                                </button>
+                              ) : null}
+                            </div>
+                          ) : null}
                         </div>
                         <label>
                           Etapa
@@ -744,9 +940,22 @@ export function QuoteEditor({
                           <FormFieldError id={`materials-${index}-consumptionOrQuantity-error`} message={fieldErrors[`materials.${index}.consumptionOrQuantity`]} />
                         </label>
                         <label>
-                          Unidade
-                          <input {...errorProps(`materials.${index}.unit`)} className="bo-input" onChange={(event) => patchMaterial(line.id, { unit: event.target.value })} value={line.unit} />
-                          <FormFieldError id={`materials-${index}-unit-error`} message={fieldErrors[`materials.${index}.unit`]} />
+                          Unidade (opcional)
+                          <select className="bo-input" onChange={(event) => updateMaterialUnit(line.id, event.target.value)} value={unitSelectValue}>
+                            <option value="">Sem unidade</option>
+                            {QUOTE_MATERIAL_UNIT_OPTIONS.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
+                            <option value={CUSTOM_UNIT_VALUE}>Outra…</option>
+                          </select>
+                          {isCustomUnit ? (
+                            <input
+                              aria-label="Unidade personalizada"
+                              className="bo-input"
+                              onChange={(event) => updateCustomMaterialUnit(line.id, event.target.value)}
+                              placeholder="Ex. placa"
+                              value={line.unit}
+                            />
+                          ) : null}
+                          <small className="bo-field-note">Identifica a unidade usada no preço; não altera o cálculo.</small>
                         </label>
                         <label>
                           Preço unitário (CHF)
@@ -938,6 +1147,16 @@ export function QuoteEditor({
           <BackofficeIcon name="save" size={16} /> {isPending ? "A guardar…" : "Guardar"}
         </button>
       </div>
+      {quickMaterialRowId && quickMaterialForm ? (
+        <QuickMaterialDialog
+          errors={quickMaterialErrors}
+          form={quickMaterialForm}
+          onCancel={closeQuickMaterial}
+          onChange={updateQuickMaterialField}
+          onSubmit={createQuickMaterial}
+          pending={isPending}
+        />
+      ) : null}
       <ConfirmDialog
         confirmLabel="Sair sem guardar"
         description="Se sair agora, essas alterações serão perdidas."
@@ -1076,6 +1295,180 @@ function SummaryMetrics({
         </section>
       ))}
     </div>
+  );
+}
+
+function QuickMaterialDialog({
+  errors,
+  form,
+  onCancel,
+  onChange,
+  onSubmit,
+  pending,
+}: {
+  errors: FieldErrors;
+  form: QuickMaterialForm;
+  onCancel: () => void;
+  onChange: (field: keyof QuickMaterialForm, value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  pending: boolean;
+}) {
+  return (
+    <div className="bo-dialog-backdrop" onMouseDown={onCancel}>
+      <form
+        aria-describedby="quick-material-description"
+        aria-labelledby="quick-material-title"
+        aria-modal="true"
+        className="bo-dialog bo-dialog-form"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") onCancel();
+        }}
+        onMouseDown={(event) => event.stopPropagation()}
+        noValidate
+        onSubmit={onSubmit}
+        role="dialog"
+      >
+        <p className="bo-eyebrow">Catálogo</p>
+        <h2 id="quick-material-title">Adicionar ao catálogo</h2>
+        <p id="quick-material-description">Guarde este material para o reutilizar em futuros orçamentos.</p>
+        <div className="bo-dialog-form-grid">
+          <QuickMaterialField
+            error={errors.brand}
+            field="brand"
+            form={form}
+            label="Marca *"
+            onChange={onChange}
+            required
+          />
+          <QuickMaterialField
+            error={errors.name}
+            field="name"
+            form={form}
+            label="Nome *"
+            onChange={onChange}
+            readOnly
+            required
+          />
+          <QuickMaterialField
+            error={errors.variant}
+            field="variant"
+            form={form}
+            label="Variante"
+            onChange={onChange}
+          />
+          <QuickMaterialField
+            error={errors.packageLabel}
+            field="packageLabel"
+            form={form}
+            label="Embalagem / descrição"
+            onChange={onChange}
+          />
+          <label>
+            Tipo de cálculo
+            <select
+              className="bo-input"
+              name="calculationType"
+              onChange={(event) => onChange("calculationType", event.target.value)}
+              value={form.calculationType}
+            >
+              <option value="per_m2">Por m²</option>
+              <option value="fixed">Fixo / manual</option>
+            </select>
+          </label>
+          <QuickMaterialField
+            decimal
+            error={errors.consumption}
+            field="consumption"
+            form={form}
+            label="Consumo de referência"
+            onChange={onChange}
+          />
+          <QuickMaterialField
+            error={errors.consumptionUnit}
+            field="consumptionUnit"
+            form={form}
+            label="Unidade do consumo"
+            onChange={onChange}
+          />
+          <QuickMaterialField
+            error={errors.unit}
+            field="unit"
+            form={form}
+            label="Unidade de cálculo *"
+            onChange={onChange}
+            required
+          />
+          <QuickMaterialField
+            decimal
+            error={errors.discountedUnitPrice}
+            field="discountedUnitPrice"
+            form={form}
+            label="Preço sugerido / unidade"
+            onChange={onChange}
+          />
+          <QuickMaterialField
+            className="bo-field-wide bo-field-full"
+            error={errors.notes}
+            field="notes"
+            form={form}
+            label="Notas"
+            onChange={onChange}
+            textarea
+          />
+        </div>
+        <div className="bo-dialog-actions">
+          <button className="bo-button bo-button-secondary" onClick={onCancel} type="button">Cancelar</button>
+          <button className="bo-button bo-button-primary" disabled={pending} type="submit">
+            {pending ? "A guardar…" : "Guardar no catálogo"}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function QuickMaterialField({
+  className,
+  decimal = false,
+  error,
+  field,
+  form,
+  label,
+  onChange,
+  readOnly = false,
+  required = false,
+  textarea = false,
+}: {
+  className?: string;
+  decimal?: boolean;
+  error?: string;
+  field: keyof QuickMaterialForm;
+  form: QuickMaterialForm;
+  label: string;
+  onChange: (field: keyof QuickMaterialForm, value: string) => void;
+  readOnly?: boolean;
+  required?: boolean;
+  textarea?: boolean;
+}) {
+  const id = `quick-material-${field}`;
+  const errorId = `${id}-error`;
+  const inputProps = {
+    "aria-describedby": error ? errorId : undefined,
+    "aria-invalid": Boolean(error),
+    className: "bo-input",
+    name: field,
+    onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(field, event.target.value),
+    readOnly,
+    required,
+    value: form[field],
+  };
+
+  return (
+    <label className={className} htmlFor={id}>
+      {label}
+      {textarea ? <textarea {...inputProps} id={id} rows={3} /> : <input {...inputProps} id={id} inputMode={decimal ? "decimal" : undefined} />}
+      <FormFieldError id={errorId} message={error} />
+    </label>
   );
 }
 

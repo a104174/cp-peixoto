@@ -98,7 +98,7 @@ export type QuoteMaterialRow = {
   package_snapshot: string | null;
   calculation_type: "per_m2" | "fixed";
   consumption_or_quantity: string;
-  unit: string;
+  unit: string | null;
   unit_price: string;
   area_factor: string;
   cost_total: string;
@@ -250,7 +250,7 @@ export type QuoteMaterialInsert = {
   package_snapshot?: string | null;
   calculation_type: "per_m2" | "fixed";
   consumption_or_quantity: string;
-  unit: string;
+  unit: string | null;
   unit_price: string;
   area_factor: string;
   cost_total: string;

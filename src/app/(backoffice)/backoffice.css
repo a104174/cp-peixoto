@@ -1233,6 +1233,33 @@ textarea.bo-input {
   color: var(--bo-accent-strong);
   font-weight: 700;
 }
+.bo-material-free-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  border: 1px solid var(--bo-border);
+  border-radius: 7px;
+  background: var(--bo-surface-muted);
+  padding: 8px 10px;
+}
+.bo-material-free-state > div {
+  display: grid;
+  align-items: center;
+  gap: 3px;
+}
+.bo-material-free-state small {
+  color: var(--bo-text-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.bo-status.is-neutral {
+  width: fit-content;
+  border-color: var(--bo-border-strong);
+  background: var(--bo-surface-strong);
+  color: var(--bo-text-muted);
+}
 .bo-inline-create {
   justify-self: start;
   margin-top: 4px;
@@ -1571,6 +1598,9 @@ textarea.bo-input {
   font-size: 11px;
   font-weight: 690;
 }
+.bo-password-field {
+  position: relative;
+}
 .bo-login-form input {
   width: 100%;
   min-height: 44px;
@@ -1583,6 +1613,36 @@ textarea.bo-input {
   transition:
     border-color 140ms var(--bo-ease),
     box-shadow 140ms var(--bo-ease);
+}
+.bo-password-field > input {
+  padding-right: 51px;
+}
+.bo-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 4px;
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bo-text-subtle);
+  cursor: pointer;
+  transition:
+    color 140ms var(--bo-ease),
+    background-color 140ms var(--bo-ease);
+}
+.bo-password-toggle:hover {
+  background: var(--bo-surface-muted);
+  color: var(--bo-text-muted);
+}
+.bo-password-toggle:focus-visible {
+  outline: 3px solid rgb(185 145 80 / 30%);
+  outline-offset: 1px;
 }
 .bo-login-form input:focus {
   border-color: var(--bo-accent);
@@ -1650,6 +1710,35 @@ textarea.bo-input {
   box-shadow: var(--bo-shadow-lg);
   padding: 24px;
   animation: bo-dialog-in 210ms var(--bo-ease) both;
+}
+.bo-dialog-form {
+  width: min(100%, 640px);
+  max-height: min(90vh, 760px);
+  overflow-y: auto;
+}
+.bo-dialog-form > .bo-eyebrow {
+  margin: 0;
+}
+.bo-dialog-form h2 {
+  margin-top: 8px;
+}
+.bo-dialog-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
+}
+.bo-dialog-form-grid > label {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  color: #4f534f;
+  font-size: 11px;
+  font-weight: 680;
+  line-height: 1.35;
+}
+.bo-dialog-form-grid .bo-field-wide {
+  grid-column: 1 / -1;
 }
 .bo-dialog h2 {
   margin: 0;
@@ -1899,6 +1988,12 @@ textarea.bo-input {
   }
   .bo-quick-form {
     grid-template-columns: 1fr;
+  }
+  .bo-dialog-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .bo-dialog-form-grid .bo-field-wide {
+    grid-column: span 1;
   }
 }
 @media (max-width: 720px) {

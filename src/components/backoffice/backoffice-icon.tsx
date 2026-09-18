@@ -5,6 +5,8 @@ export type BackofficeIconName =
   | "close"
   | "dashboard"
   | "edit"
+  | "eye"
+  | "eye-off"
   | "logout"
   | "materials"
   | "menu"
@@ -26,6 +28,8 @@ const paths: Record<BackofficeIconName, React.ReactNode> = {
   close: <><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>,
   dashboard: <><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></>,
   edit: <><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/></>,
+  eye: <><path d="M2.5 12s3.5-5 9.5-5 9.5 5 9.5 5-3.5 5-9.5 5-9.5-5-9.5-5Z"/><circle cx="12" cy="12" r="2.25"/></>,
+  "eye-off": <><path d="m3 3 18 18"/><path d="M10.6 6.2A10.7 10.7 0 0 1 12 6c6 0 9.5 6 9.5 6a16.7 16.7 0 0 1-3.2 3.9"/><path d="M6.7 6.7C4.1 8.2 2.5 12 2.5 12a16.7 16.7 0 0 0 3.6 4.1A10.1 10.1 0 0 0 12 18c1 0 2-.2 2.9-.5"/></>,
   logout: <><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></>,
   materials: <><path d="m21 8-9-5-9 5 9 5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 16 9 5 9-5"/></>,
   menu: <><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></>,

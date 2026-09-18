@@ -5,6 +5,7 @@ import { z } from "zod";
 import Decimal from "decimal.js";
 
 import { calculateQuote } from "@/domain/quotes/calculations";
+import { sameMaterialCatalogIdentity } from "@/domain/quotes/material-catalog";
 import { clientInputSchema, materialInputSchema, quoteDraftSchema } from "./schemas";
 import { getAuthenticatedSupabase } from "@/lib/supabase/server";
 import { withPerf, type PerfTimer } from "@/lib/backoffice/perf";
@@ -311,6 +312,99 @@ export async function createMaterialAction(formData: FormData): Promise<ActionRe
   });
 }
 
+export async function createMaterialFromQuoteAction(formData: FormData): Promise<ActionResult> {
+  return withPerf("material.create-from-quote", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) return authRequired();
+
+    const parsed = materialInputSchema.safeParse(readMaterialInput(formData));
+    if (!parsed.success) {
+      return {
+        success: false,
+        code: "VALIDATION_ERROR",
+        message: "Verifique os campos assinalados.",
+        fieldErrors: zodFieldErrors(parsed.error),
+      };
+    }
+
+    const { data: candidates, error: lookupError } = await authenticated.client
+      .from("materials")
+      .select("id,brand,name,variant,package_label,package_quantity,package_unit,calculation_type,unit");
+    perf.mark("duplicate-check", { rows: candidates?.length ?? 0, ok: !lookupError });
+
+    if (lookupError) {
+      logDatabaseError("check existing material", lookupError);
+      return {
+        success: false,
+        code: "SAVE_FAILED",
+        message: "Não foi possível verificar o catálogo.",
+      };
+    }
+
+    const equivalent = (candidates ?? []).find(
+      (candidate) =>
+        sameMaterialCatalogIdentity(
+          {
+            brand: candidate.brand,
+            name: candidate.name,
+            variant: candidate.variant,
+            packageLabel: candidate.package_label,
+            packageQuantity: candidate.package_quantity,
+            packageUnit: candidate.package_unit,
+            calculationType: candidate.calculation_type,
+            unit: candidate.unit,
+          },
+          {
+            brand: parsed.data.brand,
+            name: parsed.data.name,
+            variant: parsed.data.variant,
+            packageLabel: parsed.data.packageLabel,
+            packageQuantity: parsed.data.packageQuantity,
+            packageUnit: parsed.data.packageUnit,
+            calculationType: parsed.data.calculationType,
+            unit: parsed.data.unit,
+          },
+        ),
+    );
+
+    if (equivalent) {
+      revalidatePath("/backoffice");
+      revalidatePath("/backoffice/materiais");
+      revalidatePath("/backoffice/orcamentos/novo");
+      return {
+        success: true,
+        id: equivalent.id,
+        message: "Este material já existe no catálogo e foi associado.",
+      };
+    }
+
+    const { data: created, error } = await authenticated.client
+      .from("materials")
+      .insert(toMaterialRow(parsed.data))
+      .select("id")
+      .single();
+    perf.mark("query", { rows: created ? 1 : 0, ok: !error });
+    if (error) {
+      logDatabaseError("create material from quote", error);
+      return {
+        success: false,
+        code: "SAVE_FAILED",
+        message: "Não foi possível guardar o material no catálogo.",
+      };
+    }
+
+    revalidatePath("/backoffice");
+    revalidatePath("/backoffice/materiais");
+    revalidatePath("/backoffice/orcamentos/novo");
+    return {
+      success: true,
+      id: created.id,
+      message: "Material adicionado ao catálogo.",
+    };
+  });
+}
+
 export async function updateMaterialAction(formData: FormData): Promise<ActionResult> {
   return withPerf("material.update", async (perf) => {
     const authenticated = await getAuthenticatedSupabase();
@@ -387,7 +481,7 @@ function quotePersistPayload(draft: QuoteDraft, result: ReturnType<typeof calcul
       package_snapshot: line.packageSnapshot,
       calculation_type: line.calculationType,
       consumption_or_quantity: numericJson(line.consumptionOrQuantity),
-      unit: line.unit,
+      unit: line.unit.trim() ? line.unit.trim() : null,
       unit_price: numericJson(line.unitPrice),
       area_factor: result.materials.lines[index]?.areaFactor ?? numericJson(line.areaFactor),
       cost_total: result.materials.lines[index]?.costTotal ?? "0",

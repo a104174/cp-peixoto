@@ -39,9 +39,10 @@ As migrations são aplicadas por ordem:
 supabase/migrations/202609150001_backoffice_mvp.sql
 supabase/migrations/202609150002_seed_westwood_materials.sql
 supabase/migrations/202609150003_quote_blank_financial_fields.sql
+supabase/migrations/202609180001_quote_material_unit_optional.sql
 ```
 
-Se não quiser usar a CLI, executar os três ficheiros, pela mesma ordem, no SQL Editor do projeto Supabase. Não executar o seed antes da migration principal.
+Se não quiser usar a CLI, executar os quatro ficheiros, pela mesma ordem, no SQL Editor do projeto Supabase. Não executar o seed antes da migration principal.
 
 ## 4. Criar o primeiro utilizador
 

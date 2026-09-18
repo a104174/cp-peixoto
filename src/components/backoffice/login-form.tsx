@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useRef, useState } from "react";
 
+import { BackofficeIcon } from "@/components/backoffice/backoffice-icon";
 import {
   loginAction,
   type LoginActionState,
@@ -16,6 +17,13 @@ const initialState: LoginActionState = {};
 
 export function LoginForm({ nextPath, notice }: LoginFormProps) {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
+  const [showPassword, setShowPassword] = useState(false);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  function togglePasswordVisibility() {
+    setShowPassword((visible) => !visible);
+    passwordInputRef.current?.focus();
+  }
 
   return (
     <form action={formAction} className="bo-login-form">
@@ -33,15 +41,28 @@ export function LoginForm({ nextPath, notice }: LoginFormProps) {
       />
       {state.fieldErrors?.email ? <small className="bo-field-error" id="login-email-error">{state.fieldErrors.email}</small> : null}
       <label htmlFor="login-password">Palavra-passe</label>
-      <input
-        aria-describedby={state.fieldErrors?.password ? "login-password-error" : undefined}
-        aria-invalid={Boolean(state.fieldErrors?.password)}
-        autoComplete="current-password"
-        id="login-password"
-        name="password"
-        required
-        type="password"
-      />
+      <div className="bo-password-field">
+        <input
+          ref={passwordInputRef}
+          aria-describedby={state.fieldErrors?.password ? "login-password-error" : undefined}
+          aria-invalid={Boolean(state.fieldErrors?.password)}
+          autoComplete="current-password"
+          id="login-password"
+          name="password"
+          required
+          type={showPassword ? "text" : "password"}
+        />
+        <button
+          aria-label={showPassword ? "Ocultar palavra-passe" : "Mostrar palavra-passe"}
+          aria-pressed={showPassword}
+          className="bo-password-toggle"
+          onClick={togglePasswordVisibility}
+          onMouseDown={(event) => event.preventDefault()}
+          type="button"
+        >
+          <BackofficeIcon name={showPassword ? "eye-off" : "eye"} size={18} />
+        </button>
+      </div>
       {state.fieldErrors?.password ? <small className="bo-field-error" id="login-password-error">{state.fieldErrors.password}</small> : null}
       {state.message ? (
         <p aria-live="polite" className="bo-form-error" role="alert">

@@ -57,6 +57,25 @@ describe("validação de inputs do backoffice", () => {
     expect(validateQuoteDraft(draft)).toEqual({});
   });
 
+  it("aceita material livre sem unidade", () => {
+    const draft = createEmptyQuoteDraft();
+    draft.description = "Teste material livre";
+    draft.materials = [{
+      ...createEmptyMaterialDraft(),
+      materialNameSnapshot: "Pedra",
+      consumptionOrQuantity: "10",
+      unit: "",
+      unitPrice: "20",
+      areaFactor: "10",
+    }];
+
+    expect(validateQuoteDraft(draft)).toEqual({});
+    expect(quoteDraftSchema.safeParse({
+      ...draft,
+      materials: draft.materials.map((line) => ({ ...line, unit: null })),
+    }).success).toBe(true);
+  });
+
   it("rejeita um orçamento totalmente sem identificação", () => {
     const errors = validateQuoteDraft(createEmptyQuoteDraft());
     expect(errors.description).toContain("Identifique o orçamento");

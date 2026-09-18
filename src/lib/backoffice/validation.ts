@@ -126,9 +126,8 @@ export function validateQuoteDraft(draft: QuoteDraft): FieldErrors {
   draft.materials.forEach((line, index) => {
     const prefix = `materials.${index}`;
     if (isBlank(line.materialNameSnapshot)) {
-      errors[`${prefix}.materialNameSnapshot`] = "Selecione um material.";
+      errors[`${prefix}.materialNameSnapshot`] = "Indique o nome do material.";
     }
-    if (isBlank(line.unit)) errors[`${prefix}.unit`] = "Indique a unidade.";
     validateDecimal(errors, `${prefix}.consumptionOrQuantity`, line.consumptionOrQuantity, { required: true });
     validateDecimal(errors, `${prefix}.unitPrice`, line.unitPrice, { required: true });
     validateDecimal(errors, `${prefix}.areaFactor`, line.areaFactor, { required: true });

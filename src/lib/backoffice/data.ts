@@ -313,7 +313,7 @@ export function mapQuoteToDraft(value: QuoteWithLines): QuoteDraft {
     packageSnapshot: line.package_snapshot ?? "",
     calculationType: line.calculation_type,
     consumptionOrQuantity: asText(line.consumption_or_quantity),
-    unit: line.unit,
+    unit: line.unit ?? "",
     unitPrice: asText(line.unit_price),
     areaFactor: asText(line.area_factor),
     areaFactorOverridden:

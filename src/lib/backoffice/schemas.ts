@@ -78,7 +78,10 @@ const materialRowSchema = z.object({
   packageSnapshot: z.string().trim().max(120),
   calculationType: z.enum(["per_m2", "fixed"]),
   consumptionOrQuantity: decimalText,
-  unit: z.string().trim().max(32),
+  unit: z.preprocess(
+    (value) => value === null || value === undefined ? "" : value,
+    z.string().trim().max(32),
+  ),
   unitPrice: decimalText,
   areaFactor: decimalText,
   areaFactorOverridden: z.boolean().optional().default(false),
