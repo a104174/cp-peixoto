@@ -982,6 +982,11 @@ export function QuoteEditor({
                 })}
               </div>
             )}
+            {draft.materials.length > 0 ? (
+              <div className="bo-section-add-bottom">
+                <button className="bo-button bo-button-secondary" onClick={addMaterial} type="button"><BackofficeIcon name="plus" size={15} /> Adicionar material</button>
+              </div>
+            ) : null}
             <div className="bo-section-total"><span>Total materiais</span><strong>{formatMoney(calculation.materials.total)}</strong></div>
           </section>
 
@@ -1015,6 +1020,11 @@ export function QuoteEditor({
                 </article>
               );
             })}
+            {draft.labor.length > 0 ? (
+              <div className="bo-section-add-bottom">
+                <button className="bo-button bo-button-secondary" onClick={addLabor} type="button"><BackofficeIcon name="plus" size={15} /> Adicionar linha</button>
+              </div>
+            ) : null}
             <div className="bo-section-total"><span>Total mão de obra · {formatNumber(calculation.labor.totalHours)} h</span><strong>{formatMoney(calculation.labor.total)}</strong></div>
           </section>
 
@@ -1080,6 +1090,11 @@ export function QuoteEditor({
                 );
               })}
             </div>
+            {draft.surcharges.length > 0 ? (
+              <div className="bo-section-add-bottom">
+                <button className="bo-button bo-button-secondary" onClick={addSurcharge} type="button"><BackofficeIcon name="plus" size={15} /> Adicionar acréscimo</button>
+              </div>
+            ) : null}
             <div className="bo-section-total"><span>Total acréscimos</span><strong>{formatMoney(calculation.surcharges.total)}</strong></div>
           </section>
 
@@ -1238,6 +1253,11 @@ function SimpleLinesSection({
           </div>
         </article>
       ))}
+      {lines.length > 0 ? (
+        <div className="bo-section-add-bottom">
+          <button className="bo-button bo-button-secondary" onClick={add} type="button"><BackofficeIcon name="plus" size={15} /> Adicionar linha</button>
+        </div>
+      ) : null}
       <div className="bo-section-total"><span>Total</span><strong>{formatMoney(total)}</strong></div>
     </section>
   );

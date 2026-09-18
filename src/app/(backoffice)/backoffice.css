@@ -1091,6 +1091,11 @@ textarea.bo-input {
   max-width: 760px;
   margin-bottom: 0;
 }
+.bo-section-add-bottom {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
 .bo-section-total {
   display: flex;
   align-items: center;
@@ -2046,6 +2051,12 @@ textarea.bo-input {
     gap: 11px;
   }
   .bo-section-heading .bo-button {
+    width: 100%;
+  }
+  .bo-section-add-bottom {
+    justify-content: stretch;
+  }
+  .bo-section-add-bottom .bo-button {
     width: 100%;
   }
   .bo-toolbar {
