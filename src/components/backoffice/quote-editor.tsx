@@ -51,6 +51,7 @@ import {
 } from "@/lib/backoffice/actions";
 import type { ClientSummary, MaterialSummary } from "@/lib/backoffice/data";
 import { parseLocaleDecimal, validateQuoteDraft, type FieldErrors } from "@/lib/backoffice/validation";
+import { BackofficeDialog } from "./backoffice-dialog";
 import { ConfirmDialog } from "./confirm-dialog";
 import { FormFieldError } from "./form-field-error";
 import { BackofficeIcon } from "./backoffice-icon";
@@ -1334,16 +1335,13 @@ function QuickMaterialDialog({
   pending: boolean;
 }) {
   return (
-    <div className="bo-dialog-backdrop" onMouseDown={onCancel}>
+    <BackofficeDialog onClose={onCancel} open>
       <form
         aria-describedby="quick-material-description"
         aria-labelledby="quick-material-title"
         aria-modal="true"
         className="bo-dialog bo-dialog-form"
-        onKeyDown={(event) => {
-          if (event.key === "Escape") onCancel();
-        }}
-        onMouseDown={(event) => event.stopPropagation()}
+        data-bo-dialog
         noValidate
         onSubmit={onSubmit}
         role="dialog"
@@ -1443,7 +1441,7 @@ function QuickMaterialDialog({
           </button>
         </div>
       </form>
-    </div>
+    </BackofficeDialog>
   );
 }
 

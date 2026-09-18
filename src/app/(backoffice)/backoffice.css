@@ -27,6 +27,7 @@
   --bo-shadow-lg: 0 24px 70px rgb(8 10 9 / 22%);
   --bo-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --bo-sidebar-width: 248px;
+  --bo-dialog-z-index: 1000;
 }
 .backoffice-body {
   min-height: 100vh;
@@ -1699,12 +1700,14 @@ textarea.bo-input {
 }
 .bo-dialog-backdrop {
   position: fixed;
-  z-index: 100;
+  z-index: var(--bo-dialog-z-index);
   inset: 0;
   display: grid;
+  overflow-y: auto;
   place-items: center;
   background: rgb(15 18 16 / 62%);
   padding: 20px;
+  overscroll-behavior: contain;
   animation: bo-backdrop-in 180ms ease both;
 }
 .bo-dialog {
