@@ -229,16 +229,27 @@ class QuotePdfComposer {
     return true;
   }
 
-  private drawSectionTitle(title: string, minimumContentHeight = 20): void {
+  private drawSectionTitle(
+    title: string,
+    minimumContentHeight = 20,
+    prominent = false,
+  ): void {
     this.ensureSpace(26 + minimumContentHeight);
-    this.drawText(title, MARGIN_X, this.y, 8.5, this.fonts.bold, colors.accent);
+    this.drawText(
+      title,
+      MARGIN_X,
+      this.y,
+      prominent ? 9.2 : 8.5,
+      this.fonts.bold,
+      colors.accent,
+    );
     this.page.drawLine({
       start: { x: MARGIN_X, y: this.y - 8 },
       end: { x: PAGE_WIDTH - MARGIN_X, y: this.y - 8 },
-      thickness: 0.55,
+      thickness: prominent ? 0.75 : 0.55,
       color: colors.border,
     });
-    this.y -= 27;
+    this.y -= prominent ? 29 : 25;
   }
 
   private drawClient(): void {
@@ -252,14 +263,14 @@ class QuotePdfComposer {
 
     this.drawSectionTitle("CLIENTE", 45);
     this.drawFields(fields);
-    this.y -= 12;
+    this.y -= 8;
   }
 
   private drawProject(): void {
     if (this.model.projectFields.length === 0) return;
     this.drawSectionTitle("OBRA", 45);
     this.drawFields(this.model.projectFields);
-    this.y -= 12;
+    this.y -= 8;
   }
 
   private drawFields(fields: CustomerPdfField[]): void {
@@ -273,7 +284,7 @@ class QuotePdfComposer {
         lines: wrapText(field.value, this.fonts.regular, 10.5, columnWidth),
       }));
       const maxLines = Math.max(...prepared.map((item) => item.lines.length), 1);
-      const rowHeight = 15 + maxLines * 14 + 10;
+      const rowHeight = 13 + maxLines * 13 + 7;
       this.ensureSpace(rowHeight);
 
       prepared.forEach((item, columnIndex) => {
@@ -290,7 +301,7 @@ class QuotePdfComposer {
           this.drawText(
             line,
             x,
-            this.y - 15 - lineIndex * 14,
+            this.y - 13 - lineIndex * 13,
             10.5,
             this.fonts.regular,
             colors.charcoal,
@@ -304,28 +315,28 @@ class QuotePdfComposer {
 
   private drawScope(): void {
     if (this.model.scope.length === 0) return;
-    this.drawSectionTitle("ESCOPO DOS TRABALHOS", 40);
+    this.drawSectionTitle("ESCOPO DOS TRABALHOS", 42, true);
 
     this.model.scope.forEach((section) => this.drawScopeSection(section));
     this.y -= 8;
   }
 
   private drawScopeSection(section: CustomerPdfScopeSection): void {
-    const headingHeight = 23;
+    const headingHeight = 24;
     const firstItem = section.items[0] ?? "";
     const firstLines = wrapText(
       firstItem,
       this.fonts.regular,
-      10,
+      10.2,
       CONTENT_WIDTH - 24,
     );
     this.ensureSpace(headingHeight + Math.max(firstLines.length, 1) * 14 + 8);
-    this.drawText(section.title, MARGIN_X, this.y, 10, this.fonts.bold, colors.charcoal);
+    this.drawText(section.title, MARGIN_X, this.y, 10.5, this.fonts.bold, colors.charcoal);
     this.y -= headingHeight;
 
     section.items.forEach((item) => {
-      const lines = wrapText(item, this.fonts.regular, 10, CONTENT_WIDTH - 24);
-      const itemHeight = Math.max(lines.length, 1) * 14 + 7;
+      const lines = wrapText(item, this.fonts.regular, 10.2, CONTENT_WIDTH - 24);
+      const itemHeight = Math.max(lines.length, 1) * 14.5 + 7;
       const movedToNewPage = this.ensureSpace(itemHeight);
 
       if (movedToNewPage) {
@@ -343,16 +354,16 @@ class QuotePdfComposer {
       this.page.drawRectangle({
         x: MARGIN_X + 1,
         y: this.y - 3,
-        width: 3,
-        height: 3,
+        width: 3.2,
+        height: 3.2,
         color: colors.accent,
       });
       lines.forEach((line, lineIndex) => {
         this.drawText(
           line,
           MARGIN_X + 13,
-          this.y - lineIndex * 14,
-          10,
+          this.y - lineIndex * 14.5,
+          10.2,
           this.fonts.regular,
           colors.muted,
         );
@@ -366,12 +377,12 @@ class QuotePdfComposer {
   private drawCommercialSummary(): void {
     const lineHeight = 24;
     const panelPadding = 16;
-    const totalHeight = 52;
+    const totalHeight = 54;
     const panelHeight =
       panelPadding * 2 + this.model.commercialLines.length * lineHeight + totalHeight;
 
     this.ensureSpace(27 + panelHeight);
-    this.drawSectionTitle("RESUMO DA PROPOSTA", panelHeight);
+    this.drawSectionTitle("RESUMO DA PROPOSTA", panelHeight, true);
 
     const panelTop = this.y;
     const panelBottom = panelTop - panelHeight;
@@ -416,16 +427,16 @@ class QuotePdfComposer {
     this.drawText(
       "TOTAL LÍQUIDO",
       MARGIN_X + 16,
-      panelBottom + 19,
-      10,
+      panelBottom + 20,
+      10.5,
       this.fonts.bold,
       colors.white,
     );
     this.drawRightAlignedText(
       this.model.netTotal,
       PAGE_WIDTH - MARGIN_X - 16,
-      panelBottom + 17,
-      17,
+      panelBottom + 18,
+      18,
       this.fonts.bold,
       colors.white,
     );
@@ -437,9 +448,9 @@ class QuotePdfComposer {
     const pages = this.document.getPages();
     pages.forEach((page, index) => {
       page.drawLine({
-        start: { x: MARGIN_X, y: 48 },
-        end: { x: PAGE_WIDTH - MARGIN_X, y: 48 },
-        thickness: 0.5,
+        start: { x: MARGIN_X, y: 50 },
+        end: { x: PAGE_WIDTH - MARGIN_X, y: 50 },
+        thickness: 0.6,
         color: colors.border,
       });
       const contact = "CP Peixoto | cp-peixoto.ch | info@cp-peixoto.ch | +41 77 218 85 37";
@@ -448,9 +459,9 @@ class QuotePdfComposer {
         contact,
         MARGIN_X,
         29,
-        6.8,
+        7.5,
         this.fonts.regular,
-        colors.subtle,
+        colors.muted,
       );
       const pageLabel = `Orçamento ${this.model.quoteNumber} | Página ${index + 1} de ${pages.length}`;
       this.drawRightAlignedTextOnPage(
@@ -458,9 +469,9 @@ class QuotePdfComposer {
         pageLabel,
         PAGE_WIDTH - MARGIN_X,
         29,
-        6.8,
+        7.5,
         this.fonts.regular,
-        colors.subtle,
+        colors.muted,
       );
     });
   }

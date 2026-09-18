@@ -20,7 +20,7 @@ function quoteFixture(materialCount = 2): QuoteWithLines {
       client_id: "00000000-0000-0000-0000-000000000201",
       client_name_snapshot: "José Müller & Filhos",
       client_email_snapshot: "jose@example.ch",
-      client_phone_snapshot: "+41 79 111 22 33",
+      client_phone_snapshot: "0788752437",
       client_address_snapshot: "Bahnhofstrasse 10, 8001 Zürich",
       project_location: "Zürich",
       quote_date: "2026-09-18",
@@ -158,6 +158,14 @@ describe("PDF comercial do orçamento", () => {
       clientName: "José Müller & Filhos",
       netTotal: "CHF 21.444,59",
     });
+    expect(model.clientFields).toContainEqual({
+      label: "Telefone",
+      value: "078 875 24 37",
+    });
+    expect(model.projectFields).toContainEqual({
+      label: "Descrição",
+      value: "Revestimento de pavimento industrial",
+    });
     expect(model.scope).toEqual([
       {
         title: "Materiais",
@@ -200,12 +208,40 @@ describe("PDF comercial do orçamento", () => {
     source.labor = [];
     source.subcontracts = [];
     source.equipment = [];
+    source.quote.description = "   ";
 
     const model = buildCustomerQuotePdfModel(source);
     expect(model.scope).toEqual([]);
+    expect(model.projectFields.some((field) => field.label === "Descrição")).toBe(false);
     expect(model.commercialLines).toEqual([
       { label: "Preço base", value: "CHF 22.485,00" },
     ]);
+  });
+
+  it.each([
+    ["0788752437", "078 875 24 37"],
+    ["+41788752437", "+41 78 875 24 37"],
+    ["0041 78 875 24 37", "+41 78 875 24 37"],
+    ["+41 (0)78 875 24 37", "+41 78 875 24 37"],
+  ])("formata o telefone suíço %s apenas para apresentação", (phone, expected) => {
+    const source = quoteFixture();
+    source.quote.client_phone_snapshot = phone;
+    const model = buildCustomerQuotePdfModel(source);
+
+    expect(model.clientFields).toContainEqual({
+      label: "Telefone",
+      value: expected,
+    });
+    expect(source.quote.client_phone_snapshot).toBe(phone);
+  });
+
+  it("evita repetir uma variante que já faz parte do nome do material", () => {
+    const source = quoteFixture(1);
+    source.materials[0].material_name_snapshot = "Wecryl 488 PG1";
+    source.materials[0].variant_snapshot = "PG1";
+
+    const model = buildCustomerQuotePdfModel(source);
+    expect(model.scope[0].items).toEqual(["Wecryl 488 PG1"]);
   });
 
   it("cria um filename seguro e previsível", () => {
@@ -220,16 +256,22 @@ describe("PDF comercial do orçamento", () => {
   it("gera PDFs A4 válidos para os cenários de QA", async () => {
     const logo = await logoBytes();
     const smallSource = quoteFixture(0);
+    smallSource.quote.description = null;
     smallSource.labor = [];
     smallSource.subcontracts = [];
     smallSource.equipment = [];
     smallSource.surcharges = [];
     const completeSource = quoteFixture(8);
+    const descriptionSource = quoteFixture(3);
+    descriptionSource.quote.description =
+      "Preparação do suporte e aplicação de revestimento contínuo de elevada resistência para a área de produção.";
+    descriptionSource.quote.client_phone_snapshot = "+41788752437";
     const longSource = quoteFixture(72);
 
     const scenarios = [
       ["orcamento-pequeno.pdf", smallSource, 1],
       ["orcamento-varias-seccoes.pdf", completeSource, 1],
+      ["orcamento-com-descricao.pdf", descriptionSource, 1],
       ["orcamento-multipagina.pdf", longSource, 2],
     ] as const;
 

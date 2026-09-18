@@ -38,6 +38,29 @@ function cleanText(value: string | null | undefined): string | null {
   return normalized || null;
 }
 
+function formatSwissPhone(value: string | null): string | null {
+  if (!value) return null;
+
+  const compact = value.replace(/[\s()./-]/g, "");
+  const digits = compact.replace(/\D/g, "");
+
+  if (digits.length === 10 && digits.startsWith("0")) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8)}`;
+  }
+
+  let international = digits;
+  if (international.startsWith("0041")) international = international.slice(2);
+  if (international.startsWith("410") && international.length === 12) {
+    international = `41${international.slice(3)}`;
+  }
+  if (international.startsWith("41") && international.length === 11) {
+    const national = international.slice(2);
+    return `+41 ${national.slice(0, 2)} ${national.slice(2, 5)} ${national.slice(5, 7)} ${national.slice(7)}`;
+  }
+
+  return value;
+}
+
 function positiveDecimal(value: string | number | null | undefined): boolean {
   try {
     return new Decimal(value ?? 0).gt(0);
@@ -105,33 +128,43 @@ function materialLabel(
   name: string,
   variant: string | null,
 ): string | null {
-  const parts = [cleanText(name), cleanText(variant)].filter(
-    (part): part is string => Boolean(part),
-  );
-  return parts.length > 0 ? parts.join(" · ") : null;
+  const materialName = cleanText(name);
+  const materialVariant = cleanText(variant);
+  if (!materialName) return materialVariant;
+  if (!materialVariant) return materialName;
+
+  const normalizedName = materialName.toLocaleLowerCase("pt-PT");
+  const normalizedVariant = materialVariant.toLocaleLowerCase("pt-PT");
+  const variantAlreadyVisible =
+    normalizedName === normalizedVariant ||
+    normalizedName.endsWith(` ${normalizedVariant}`) ||
+    normalizedName.endsWith(` · ${normalizedVariant}`) ||
+    normalizedName.endsWith(` / ${normalizedVariant}`);
+
+  return variantAlreadyVisible
+    ? materialName
+    : `${materialName} · ${materialVariant}`;
 }
 
 export function buildCustomerQuotePdfModel(
   source: QuoteWithLines,
 ): CustomerQuotePdfModel {
   const { quote } = source;
+  const clientEmail = cleanText(quote.client_email_snapshot);
+  const clientPhone = formatSwissPhone(cleanText(quote.client_phone_snapshot));
   const clientFields: CustomerPdfField[] = [
     ...splitAddressSnapshot(quote.client_address_snapshot),
-    ...(cleanText(quote.client_email_snapshot)
-      ? [{ label: "Email", value: cleanText(quote.client_email_snapshot)! }]
-      : []),
-    ...(cleanText(quote.client_phone_snapshot)
-      ? [{ label: "Telefone", value: cleanText(quote.client_phone_snapshot)! }]
-      : []),
+    ...(clientEmail ? [{ label: "Email", value: clientEmail }] : []),
+    ...(clientPhone ? [{ label: "Telefone", value: clientPhone }] : []),
   ];
 
   const area = formatArea(quote.area, quote.area_unit);
+  const description = cleanText(quote.description);
+  const projectLocation = cleanText(quote.project_location);
   const projectFields: CustomerPdfField[] = [
-    ...(cleanText(quote.description)
-      ? [{ label: "Descrição", value: cleanText(quote.description)! }]
-      : []),
-    ...(cleanText(quote.project_location)
-      ? [{ label: "Local da obra", value: cleanText(quote.project_location)! }]
+    ...(description ? [{ label: "Descrição", value: description }] : []),
+    ...(projectLocation
+      ? [{ label: "Local da obra", value: projectLocation }]
       : []),
     ...(area ? [{ label: "Área", value: area }] : []),
   ];
