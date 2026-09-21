@@ -30,7 +30,6 @@ function quoteFixture(materialCount = 2): QuoteWithLines {
       hourly_rate: "52",
       desired_margin: "0.1069",
       commercial_discount: "0.02",
-      skonto: "0.02",
       fixed_deduction: "150",
       materials_total: "8649",
       labor_total: "4264",
@@ -39,12 +38,12 @@ function quoteFixture(materialCount = 2): QuoteWithLines {
       direct_costs_total: "15693",
       surcharges_total: "3898.7904",
       total_cost: "19591.7904",
-      recommended_gross: "22841.3561307",
+      recommended_gross: "22384.529008109794136",
       manual_gross: "22485",
       gross_used: "22485",
-      net_value: "21444.594",
-      profit: "1852.8036",
-      real_margin: "0.0864",
+      net_value: "21885.3",
+      profit: "2293.5096",
+      real_margin: "0.1048",
       total_hours: "82",
       created_at: timestamp,
       updated_at: timestamp,
@@ -156,7 +155,7 @@ describe("PDF comercial do orçamento", () => {
       quoteNumber: "CP-2026-0001",
       quoteDate: "18.09.2026",
       clientName: "José Müller & Filhos",
-      netTotal: "CHF 21.444,59",
+      netTotal: "CHF 21.885,30",
     });
     expect(model.clientFields).toContainEqual({
       label: "Telefone",
@@ -181,7 +180,6 @@ describe("PDF comercial do orçamento", () => {
     expect(model.commercialLines).toEqual([
       { label: "Preço base", value: "CHF 22.485,00" },
       { label: "Desconto comercial", value: "-2,00%" },
-      { label: "Skonto", value: "-2,00%" },
       { label: "Dedução fixa", value: "-CHF 150,00" },
     ]);
 
@@ -203,7 +201,6 @@ describe("PDF comercial do orçamento", () => {
   it("omite linhas comerciais e secções vazias", () => {
     const source = quoteFixture(0);
     source.quote.commercial_discount = "0";
-    source.quote.skonto = null;
     source.quote.fixed_deduction = "0";
     source.labor = [];
     source.subcontracts = [];

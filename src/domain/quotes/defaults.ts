@@ -70,7 +70,6 @@ export function createEmptyQuoteDraft(): QuoteDraft {
     hourlyRate: "",
     desiredMargin: "",
     commercialDiscount: "",
-    skonto: "",
     fixedDeduction: "",
     manualGross: "",
     materials: [],

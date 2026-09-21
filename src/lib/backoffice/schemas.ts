@@ -143,7 +143,6 @@ export const quoteDraftSchema = z.object({
   hourlyRate: decimalText,
   desiredMargin: decimalText,
   commercialDiscount: decimalText,
-  skonto: decimalText,
   fixedDeduction: decimalText,
   manualGross: decimalText,
   materials: z.array(materialRowSchema).max(100),

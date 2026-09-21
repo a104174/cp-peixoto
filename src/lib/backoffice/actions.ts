@@ -456,7 +456,6 @@ function quotePersistPayload(draft: QuoteDraft, result: ReturnType<typeof calcul
     hourly_rate: nullableNumericJson(draft.hourlyRate),
     desired_margin: nullableNumericJson(draft.desiredMargin),
     commercial_discount: nullableNumericJson(draft.commercialDiscount),
-    skonto: nullableNumericJson(draft.skonto),
     fixed_deduction: nullableNumericJson(draft.fixedDeduction),
     materials_total: result.materials.total,
     labor_total: result.labor.total,

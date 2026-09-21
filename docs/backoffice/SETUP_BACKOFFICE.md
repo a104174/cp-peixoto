@@ -40,9 +40,10 @@ supabase/migrations/202609150001_backoffice_mvp.sql
 supabase/migrations/202609150002_seed_westwood_materials.sql
 supabase/migrations/202609150003_quote_blank_financial_fields.sql
 supabase/migrations/202609180001_quote_material_unit_optional.sql
+supabase/migrations/202609210001_remove_skonto.sql
 ```
 
-Se não quiser usar a CLI, executar os quatro ficheiros, pela mesma ordem, no SQL Editor do projeto Supabase. Não executar o seed antes da migration principal.
+Se não quiser usar a CLI, executar os cinco ficheiros, pela mesma ordem, no SQL Editor do projeto Supabase. Não executar o seed antes da migration principal. A última migration consolida os descontos históricos e remove a coluna legacy antes de disponibilizar a nova versão do backoffice.
 
 ## 4. Criar o primeiro utilizador
 

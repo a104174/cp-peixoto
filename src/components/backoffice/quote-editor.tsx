@@ -227,7 +227,6 @@ export function QuoteEditor({
       | "hourlyRate"
       | "desiredMargin"
       | "commercialDiscount"
-      | "skonto"
       | "fixedDeduction"
       | "manualGross",
     value: string,
@@ -767,11 +766,6 @@ export function QuoteEditor({
                 Desconto comercial (%)
                 <input {...errorProps("commercialDiscount")} className="bo-input" inputMode="decimal" onChange={(event) => updateHeader("commercialDiscount", decimalInputToRate(event.target.value))} value={rateToDecimalInput(draft.commercialDiscount)} />
                 <FormFieldError id="commercialDiscount-error" message={fieldErrors.commercialDiscount} />
-              </label>
-              <label>
-                Skonto (%)
-                <input {...errorProps("skonto")} className="bo-input" inputMode="decimal" onChange={(event) => updateHeader("skonto", decimalInputToRate(event.target.value))} value={rateToDecimalInput(draft.skonto)} />
-                <FormFieldError id="skonto-error" message={fieldErrors.skonto} />
               </label>
               <label>
                 Dedução fixa (CHF)

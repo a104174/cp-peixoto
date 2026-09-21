@@ -161,7 +161,6 @@ describe("validação de inputs do backoffice", () => {
       hourlyRate: 52,
       desiredMargin: 0.1069,
       commercialDiscount: 0.02,
-      skonto: 0.02,
       fixedDeduction: 0,
       materials: [material],
     });

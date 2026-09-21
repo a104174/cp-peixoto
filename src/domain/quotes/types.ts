@@ -75,7 +75,6 @@ export interface QuoteDraft {
   hourlyRate: DecimalString;
   desiredMargin: DecimalString;
   commercialDiscount: DecimalString;
-  skonto: DecimalString;
   fixedDeduction: DecimalString;
   manualGross: DecimalString;
   materials: QuoteMaterialDraft[];

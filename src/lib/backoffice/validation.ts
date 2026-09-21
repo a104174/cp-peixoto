@@ -119,7 +119,6 @@ export function validateQuoteDraft(draft: QuoteDraft): FieldErrors {
   }
   validateDecimal(errors, "desiredMargin", draft.desiredMargin, { percentage: true });
   validateDecimal(errors, "commercialDiscount", draft.commercialDiscount, { percentage: true });
-  validateDecimal(errors, "skonto", draft.skonto, { percentage: true });
   validateDecimal(errors, "fixedDeduction", draft.fixedDeduction);
   validateDecimal(errors, "manualGross", draft.manualGross);
 

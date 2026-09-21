@@ -67,7 +67,6 @@ export type QuoteRow = {
   hourly_rate: string | null;
   desired_margin: string | null;
   commercial_discount: string | null;
-  skonto: string | null;
   fixed_deduction: string | null;
   materials_total: string;
   labor_total: string;
@@ -217,7 +216,6 @@ export type QuoteInsert = {
   hourly_rate?: string | null;
   desired_margin?: string | null;
   commercial_discount?: string | null;
-  skonto?: string | null;
   fixed_deduction?: string | null;
   materials_total?: string;
   labor_total?: string;

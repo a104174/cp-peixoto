@@ -13,7 +13,7 @@ import type {
 
 Decimal.set({ precision: 40, rounding: Decimal.ROUND_HALF_UP });
 
-export const FORMULA_ENGINE_VERSION = "excel-v1" as const;
+export const FORMULA_ENGINE_VERSION = "excel-v2" as const;
 
 function decimalOrZero(value: string | null | undefined): Decimal {
   const normalized = String(value ?? "").trim().replace(",", ".");
@@ -170,16 +170,13 @@ export function calculateQuote(draft: QuoteDraft): QuoteCalculationResult {
   const totalCost = directCosts.add(surchargeTotal);
   const desiredMargin = decimalOrZero(draft.desiredMargin);
   const commercialDiscount = decimalOrZero(draft.commercialDiscount);
-  const skonto = decimalOrZero(draft.skonto);
   const recommendedGross =
     desiredMargin.gte(1) ||
-    commercialDiscount.gte(1) ||
-    skonto.gte(1)
+    commercialDiscount.gte(1)
       ? new Decimal(0)
       : totalCost
           .div(new Decimal(1).sub(desiredMargin))
-          .div(new Decimal(1).sub(commercialDiscount))
-          .div(new Decimal(1).sub(skonto));
+          .div(new Decimal(1).sub(commercialDiscount));
 
   const manualGrossText = draft.manualGross.trim();
   const grossUsed = manualGrossText
@@ -188,7 +185,6 @@ export function calculateQuote(draft: QuoteDraft): QuoteCalculationResult {
   const fixedDeduction = decimalOrZero(draft.fixedDeduction);
   const netValue = grossUsed
     .mul(new Decimal(1).sub(commercialDiscount))
-    .mul(new Decimal(1).sub(skonto))
     .sub(fixedDeduction);
   const profit = netValue.sub(totalCost);
   const realMargin = netValue.isZero()
@@ -215,7 +211,7 @@ export function calculateQuote(draft: QuoteDraft): QuoteCalculationResult {
     warnings.push({
       code: "FIXED_DEDUCTION_NOT_IN_RECOMMENDED_PRICE",
       message:
-        "A fórmula excel-v1 não compensa a dedução fixa no preço recomendado.",
+        "A fórmula excel-v2 não compensa a dedução fixa no preço recomendado.",
       severity: "warning",
       field: "fixedDeduction",
     });
@@ -258,7 +254,7 @@ export function calculateQuote(draft: QuoteDraft): QuoteCalculationResult {
       });
     }
   });
-  if (desiredMargin.gte(1) || commercialDiscount.gte(1) || skonto.gte(1)) {
+  if (desiredMargin.gte(1) || commercialDiscount.gte(1)) {
     warnings.push({
       code: "INVALID_RATE",
       message: "Uma taxa é igual ou superior a 100%; o preço recomendado foi zero.",

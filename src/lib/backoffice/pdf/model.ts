@@ -204,9 +204,6 @@ export function buildCustomerQuotePdfModel(
           },
         ]
       : []),
-    ...(positiveDecimal(quote.skonto)
-      ? [{ label: "Skonto", value: `-${formatPercent(quote.skonto)}` }]
-      : []),
     ...(positiveDecimal(quote.fixed_deduction)
       ? [
           {

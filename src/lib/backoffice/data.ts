@@ -93,7 +93,7 @@ export type DashboardStats = {
 };
 
 const quoteColumns =
-  "id,quote_number,client_id,client_name_snapshot,client_email_snapshot,client_phone_snapshot,client_address_snapshot,project_location,quote_date,description,area,area_unit,hourly_rate,desired_margin,commercial_discount,skonto,fixed_deduction,materials_total,labor_total,subcontracts_total,equipment_total,direct_costs_total,surcharges_total,total_cost,recommended_gross,manual_gross,gross_used,net_value,profit,real_margin,total_hours,created_at,updated_at";
+  "id,quote_number,client_id,client_name_snapshot,client_email_snapshot,client_phone_snapshot,client_address_snapshot,project_location,quote_date,description,area,area_unit,hourly_rate,desired_margin,commercial_discount,fixed_deduction,materials_total,labor_total,subcontracts_total,equipment_total,direct_costs_total,surcharges_total,total_cost,recommended_gross,manual_gross,gross_used,net_value,profit,real_margin,total_hours,created_at,updated_at";
 const quoteMaterialColumns =
   "id,quote_id,material_id,position,stage,material_name_snapshot,variant_snapshot,package_snapshot,calculation_type,consumption_or_quantity,unit,unit_price,area_factor,cost_total,notes,created_at,updated_at";
 const quoteLaborColumns =
@@ -404,7 +404,6 @@ export function mapQuoteToDraft(value: QuoteWithLines): QuoteDraft {
     hourlyRate: asText(quote.hourly_rate),
     desiredMargin: asText(quote.desired_margin),
     commercialDiscount: asText(quote.commercial_discount),
-    skonto: asText(quote.skonto),
     fixedDeduction: asText(quote.fixed_deduction),
     manualGross: asText(quote.manual_gross),
     materials,

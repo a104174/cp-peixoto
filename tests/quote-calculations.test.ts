@@ -45,7 +45,6 @@ function baseDraft(overrides: Partial<QuoteDraft> = {}): QuoteDraft {
     hourlyRate: "52",
     desiredMargin: "0.1069",
     commercialDiscount: "0.02",
-    skonto: "0.02",
     fixedDeduction: "0",
     manualGross: "",
     materials: [],
@@ -72,7 +71,6 @@ describe("quote calculation engine", () => {
       hourlyRate: "",
       desiredMargin: "",
       commercialDiscount: "",
-      skonto: "",
       fixedDeduction: "",
       manualGross: "",
     });
@@ -318,17 +316,40 @@ describe("quote calculation engine", () => {
     expect(result.surcharges.total).toBe("32");
   });
 
-  it("reconstructs the Excel recommended-price formula", () => {
+  it("reconstructs the Excel v2 recommended-price formula", () => {
     const result = calculateQuote(
       baseDraft({
         materials: [material(0, "1", "100", "fixed")],
         desiredMargin: "0.1",
         commercialDiscount: "0.02",
-        skonto: "0.02",
       }),
     );
 
-    expect(new Decimal(result.recommendedGross).toFixed(8)).toBe("115.69253552");
+    expect(new Decimal(result.recommendedGross).toFixed(8)).toBe("113.37868481");
+  });
+
+  it("calculates a recommended price without any commercial discount", () => {
+    const result = calculateQuote(
+      baseDraft({
+        materials: [material(0, "1", "100", "fixed")],
+        commercialDiscount: "0",
+      }),
+    );
+
+    expect(new Decimal(result.recommendedGross).toFixed(8)).toBe("111.96954428");
+  });
+
+  it("accepts a commercial discount close to the limit", () => {
+    const result = calculateQuote(
+      baseDraft({
+        materials: [material(0, "1", "100", "fixed")],
+        desiredMargin: "0",
+        commercialDiscount: "0.9999",
+      }),
+    );
+
+    expect(result.recommendedGross).toBe("1000000");
+    expect(result.warnings).not.toContainEqual(expect.objectContaining({ code: "INVALID_RATE" }));
   });
 
   it("uses the manual gross override when present", () => {
@@ -349,13 +370,12 @@ describe("quote calculation engine", () => {
         materials: [material(0, "1", "100", "fixed")],
         manualGross: "150",
         commercialDiscount: "0.02",
-        skonto: "0.02",
       }),
     );
 
-    expect(result.netValue).toBe("144.06");
-    expect(result.profit).toBe("44.06");
-    expect(new Decimal(result.realMargin).toFixed(12)).toBe("0.305844786894");
+    expect(result.netValue).toBe("147");
+    expect(result.profit).toBe("47");
+    expect(new Decimal(result.realMargin).toFixed(12)).toBe("0.319727891156");
   });
 
   it("returns zero indicators for zero area and zero hours", () => {
@@ -380,7 +400,7 @@ describe("quote calculation engine", () => {
       }),
     );
 
-    expect(result.recommendedGross).toBe("116.5863643106567724949076241932748228343");
+    expect(result.recommendedGross).toBe("114.2546370244436370450094717094093263776");
     expect(result.warnings.some((warning) => warning.code === "FIXED_DEDUCTION_NOT_IN_RECOMMENDED_PRICE")).toBe(true);
   });
 
@@ -444,12 +464,68 @@ describe("quote calculation engine", () => {
     ]);
     expect(result.surcharges.total).toBe("3898.7904");
     expect(result.totalCost).toBe("19591.7904");
-    expect(new Decimal(result.recommendedGross).toFixed(6)).toBe("22841.356131");
+    expect(new Decimal(result.recommendedGross).toFixed(6)).toBe("22384.529008");
     expect(result.grossUsed).toBe("22485");
-    expect(result.netValue).toBe("21594.594");
-    expect(result.profit).toBe("2002.8036");
-    expect(new Decimal(result.realMargin).toFixed(8)).toBe("0.09274560");
-    expect(result.netPerM2).toBe("35.99099");
-    expect(new Decimal(result.netPerHour).toFixed(10)).toBe("263.3487073171");
+    expect(result.netValue).toBe("22035.3");
+    expect(result.profit).toBe("2443.5096");
+    expect(new Decimal(result.realMargin).toFixed(8)).toBe("0.11089069");
+    expect(result.netPerM2).toBe("36.7255");
+    expect(new Decimal(result.netPerHour).toFixed(10)).toBe("268.7231707317");
+  });
+
+  it("merges the two historical discounts without changing financial results", () => {
+    const legacyCommercialDiscount = new Decimal("0.05");
+    const legacySecondDiscount = new Decimal("0.02");
+    const mergedCommercialDiscount = new Decimal(1).sub(
+      new Decimal(1).sub(legacyCommercialDiscount).mul(
+        new Decimal(1).sub(legacySecondDiscount),
+      ),
+    );
+    const totalCost = new Decimal("1000");
+    const desiredMargin = new Decimal("0.1");
+    const grossUsed = new Decimal("1500");
+    const fixedDeduction = new Decimal("25");
+
+    const legacyRecommendedGross = totalCost
+      .div(new Decimal(1).sub(desiredMargin))
+      .div(new Decimal(1).sub(legacyCommercialDiscount))
+      .div(new Decimal(1).sub(legacySecondDiscount));
+    const currentRecommendedGross = totalCost
+      .div(new Decimal(1).sub(desiredMargin))
+      .div(new Decimal(1).sub(mergedCommercialDiscount));
+    const legacyNetValue = grossUsed
+      .mul(new Decimal(1).sub(legacyCommercialDiscount))
+      .mul(new Decimal(1).sub(legacySecondDiscount))
+      .sub(fixedDeduction);
+    const currentNetValue = grossUsed
+      .mul(new Decimal(1).sub(mergedCommercialDiscount))
+      .sub(fixedDeduction);
+
+    expect(mergedCommercialDiscount.toString()).toBe("0.069");
+    expect(currentRecommendedGross.eq(legacyRecommendedGross)).toBe(true);
+    expect(currentNetValue.eq(legacyNetValue)).toBe(true);
+    expect(currentNetValue.sub(totalCost).eq(legacyNetValue.sub(totalCost))).toBe(true);
+    expect(
+      currentNetValue.sub(totalCost).div(currentNetValue).eq(
+        legacyNetValue.sub(totalCost).div(legacyNetValue),
+      ),
+    ).toBe(true);
+  });
+
+  it("reopens a converted historical quote with the same financial outputs", () => {
+    const result = calculateQuote(
+      baseDraft({
+        materials: [material(0, "1", "100", "fixed")],
+        desiredMargin: "0.1",
+        commercialDiscount: "0.0396",
+        manualGross: "150",
+      }),
+    );
+
+    expect(new Decimal(result.recommendedGross).toFixed(8)).toBe("115.69253552");
+    expect(result.grossUsed).toBe("150");
+    expect(result.netValue).toBe("144.06");
+    expect(result.profit).toBe("44.06");
+    expect(new Decimal(result.realMargin).toFixed(12)).toBe("0.305844786894");
   });
 });
