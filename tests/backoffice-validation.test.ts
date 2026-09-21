@@ -13,9 +13,25 @@ import {
   validateQuoteDraft,
   zodFieldErrors,
 } from "../src/lib/backoffice/validation";
-import { quoteDraftSchema } from "../src/lib/backoffice/schemas";
+import { materialInputSchema, quoteDraftSchema } from "../src/lib/backoffice/schemas";
 
 describe("validação de inputs do backoffice", () => {
+  it("aceita o catálogo simplificado com apenas o nome", () => {
+    expect(materialInputSchema.safeParse({ name: "Pedra" }).success).toBe(true);
+    expect(materialInputSchema.safeParse({
+      name: "Wecryl 171 - 10 kg",
+      consumptionPerM2: "0,5",
+      pricePerKg: 22.22,
+      pricePerContainer: "222,22",
+    }).success).toBe(true);
+  });
+
+  it("valida apenas números não negativos no catálogo simplificado", () => {
+    expect(materialInputSchema.safeParse({ name: "Pedra", pricePerKg: "-1" }).success).toBe(false);
+    expect(materialInputSchema.safeParse({ name: "" }).success).toBe(false);
+    expect(materialInputSchema.safeParse({ name: "Pedra", consumptionPerM2: "abc" }).success).toBe(false);
+  });
+
   it("aceita vírgula e ponto decimal", () => {
     expect(normalizeLocaleDecimal("10,69")).toBe("10.69");
     expect(normalizeLocaleDecimal("10.69")).toBe("10.69");

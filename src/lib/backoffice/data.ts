@@ -36,23 +36,10 @@ export type ClientSummary = Pick<
 export type MaterialSummary = Pick<
   MaterialRow,
   | "id"
-  | "brand"
   | "name"
-  | "variant"
-  | "category"
-  | "package_label"
-  | "package_quantity"
-  | "package_unit"
-  | "calculation_type"
-  | "consumption"
-  | "consumption_unit"
-  | "unit"
-  | "base_unit_price"
-  | "discounted_unit_price"
-  | "base_package_price"
-  | "discounted_package_price"
-  | "discount_rate"
-  | "notes"
+  | "consumption_per_m2"
+  | "price_per_kg"
+  | "price_per_container"
   | "is_active"
 >;
 
@@ -166,11 +153,9 @@ export async function listMaterials(
     let query = authenticated.client
       .from("materials")
       .select(
-        "id,brand,name,variant,category,package_label,package_quantity,package_unit,calculation_type,consumption,consumption_unit,unit,base_unit_price,discounted_unit_price,base_package_price,discounted_package_price,discount_rate,notes,is_active",
+        "id,name,consumption_per_m2,price_per_kg,price_per_container,is_active",
       )
-      .order("name", { ascending: true })
-      .order("variant", { ascending: true })
-      .order("package_label", { ascending: true });
+      .order("name", { ascending: true });
 
     if (!includeInactive) {
       query = query.eq("is_active", true);

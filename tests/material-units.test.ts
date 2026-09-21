@@ -8,7 +8,6 @@ import {
 import {
   attachCatalogMaterial,
   materialNameOverride,
-  sameMaterialCatalogIdentity,
 } from "../src/domain/quotes/material-catalog";
 
 describe("unidades de materiais", () => {
@@ -26,27 +25,7 @@ describe("unidades de materiais", () => {
   });
 });
 
-describe("identidade do catálogo de materiais", () => {
-  const base = {
-    brand: "WestWood",
-    name: "Pedra",
-    variant: null,
-    packageLabel: "10 kg",
-    packageQuantity: "10",
-    packageUnit: "kg",
-    calculationType: "per_m2" as const,
-    unit: "kg",
-  };
-
-  it("reutiliza um material equivalente", () => {
-    expect(sameMaterialCatalogIdentity(base, { ...base, brand: " westwood " })).toBe(true);
-  });
-
-  it("mantém variantes e embalagens diferentes separadas", () => {
-    expect(sameMaterialCatalogIdentity(base, { ...base, variant: "PG1" })).toBe(false);
-    expect(sameMaterialCatalogIdentity(base, { ...base, packageQuantity: "25" })).toBe(false);
-  });
-
+describe("linhas de materiais", () => {
   it("desassocia um nome alterado sem apagar overrides da linha", () => {
     const selected = {
       materialId: "catalog-id",

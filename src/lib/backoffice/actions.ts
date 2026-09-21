@@ -2,14 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import Decimal from "decimal.js";
 
 import { calculateQuote } from "@/domain/quotes/calculations";
-import { sameMaterialCatalogIdentity } from "@/domain/quotes/material-catalog";
 import { clientInputSchema, materialInputSchema, quoteDraftSchema } from "./schemas";
 import { getAuthenticatedSupabase } from "@/lib/supabase/server";
 import { withPerf, type PerfTimer } from "@/lib/backoffice/perf";
-import type { Json } from "@/lib/supabase/database.types";
+import type { Json, MaterialInsert } from "@/lib/supabase/database.types";
 import type { QuoteDraft } from "@/domain/quotes/types";
 import {
   normalizeLocaleDecimal,
@@ -31,16 +29,6 @@ function normalizeDecimal(value: string | null | undefined, fallback = "0"): str
     return fallback;
   }
   return normalizeLocaleDecimal(text) ?? fallback;
-}
-
-function normalizePercentToRate(value: string | null | undefined): string | null {
-  const text = String(value ?? "").trim();
-  if (!text) return null;
-  try {
-    return new Decimal(text.replace(",", ".")).div(100).toString();
-  } catch {
-    return null;
-  }
 }
 
 function authRequired(): ActionResult {
@@ -243,45 +231,34 @@ export async function toggleMaterialActiveAction(id: string): Promise<ActionResu
 
 function readMaterialInput(formData: FormData) {
   return {
-    brand: stringValue(formData, "brand"),
     name: stringValue(formData, "name"),
-    variant: stringValue(formData, "variant"),
-    category: stringValue(formData, "category"),
-    packageLabel: stringValue(formData, "packageLabel"),
-    packageQuantity: stringValue(formData, "packageQuantity"),
-    packageUnit: stringValue(formData, "packageUnit"),
-    calculationType: stringValue(formData, "calculationType"),
-    consumption: stringValue(formData, "consumption"),
-    consumptionUnit: stringValue(formData, "consumptionUnit"),
-    unit: stringValue(formData, "unit"),
-    baseUnitPrice: stringValue(formData, "baseUnitPrice"),
-    discountedUnitPrice: stringValue(formData, "discountedUnitPrice"),
-    basePackagePrice: stringValue(formData, "basePackagePrice"),
-    discountedPackagePrice: stringValue(formData, "discountedPackagePrice"),
-    discountRate: stringValue(formData, "discountRate"),
-    notes: stringValue(formData, "notes"),
+    consumptionPerM2: stringValue(formData, "consumptionPerM2"),
+    pricePerKg: stringValue(formData, "pricePerKg"),
+    pricePerContainer: stringValue(formData, "pricePerContainer"),
   };
 }
 
-function toMaterialRow(input: z.infer<typeof materialInputSchema>) {
+function toMaterialRow(input: z.infer<typeof materialInputSchema>): MaterialInsert {
+  const consumptionPerM2 = input.consumptionPerM2
+    ? normalizeDecimal(input.consumptionPerM2)
+    : null;
+  const pricePerKg = input.pricePerKg ? normalizeDecimal(input.pricePerKg) : null;
+  const pricePerContainer = input.pricePerContainer
+    ? normalizeDecimal(input.pricePerContainer)
+    : null;
+  const calculationType: MaterialInsert["calculation_type"] = consumptionPerM2
+    ? "per_m2"
+    : "fixed";
+
   return {
-    brand: input.brand,
     name: input.name,
-    variant: input.variant || null,
-    category: input.category || null,
-    package_label: input.packageLabel || null,
-    package_quantity: input.packageQuantity ? normalizeDecimal(input.packageQuantity) : null,
-    package_unit: input.packageUnit || null,
-    calculation_type: input.calculationType,
-    consumption: input.consumption ? normalizeDecimal(input.consumption) : null,
-    consumption_unit: input.consumptionUnit || null,
-    unit: input.unit,
-    base_unit_price: input.baseUnitPrice ? normalizeDecimal(input.baseUnitPrice) : null,
-    discounted_unit_price: input.discountedUnitPrice ? normalizeDecimal(input.discountedUnitPrice) : null,
-    base_package_price: input.basePackagePrice ? normalizeDecimal(input.basePackagePrice) : null,
-    discounted_package_price: input.discountedPackagePrice ? normalizeDecimal(input.discountedPackagePrice) : null,
-    discount_rate: normalizePercentToRate(input.discountRate),
-    notes: input.notes || null,
+    consumption_per_m2: consumptionPerM2,
+    price_per_kg: pricePerKg,
+    price_per_container: pricePerContainer,
+    // These two legacy constraints remain NOT NULL in the original table.
+    // They are derived technical values; the active catalogue uses the fields above.
+    calculation_type: calculationType,
+    unit: "kg",
   };
 }
 
@@ -330,7 +307,7 @@ export async function createMaterialFromQuoteAction(formData: FormData): Promise
 
     const { data: candidates, error: lookupError } = await authenticated.client
       .from("materials")
-      .select("id,brand,name,variant,package_label,package_quantity,package_unit,calculation_type,unit");
+      .select("id,name");
     perf.mark("duplicate-check", { rows: candidates?.length ?? 0, ok: !lookupError });
 
     if (lookupError) {
@@ -342,30 +319,9 @@ export async function createMaterialFromQuoteAction(formData: FormData): Promise
       };
     }
 
+    const normalizedName = parsed.data.name.trim().toLocaleLowerCase("pt-PT");
     const equivalent = (candidates ?? []).find(
-      (candidate) =>
-        sameMaterialCatalogIdentity(
-          {
-            brand: candidate.brand,
-            name: candidate.name,
-            variant: candidate.variant,
-            packageLabel: candidate.package_label,
-            packageQuantity: candidate.package_quantity,
-            packageUnit: candidate.package_unit,
-            calculationType: candidate.calculation_type,
-            unit: candidate.unit,
-          },
-          {
-            brand: parsed.data.brand,
-            name: parsed.data.name,
-            variant: parsed.data.variant,
-            packageLabel: parsed.data.packageLabel,
-            packageQuantity: parsed.data.packageQuantity,
-            packageUnit: parsed.data.packageUnit,
-            calculationType: parsed.data.calculationType,
-            unit: parsed.data.unit,
-          },
-        ),
+      (candidate) => candidate.name.trim().toLocaleLowerCase("pt-PT") === normalizedName,
     );
 
     if (equivalent) {

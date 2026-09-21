@@ -41,9 +41,12 @@ supabase/migrations/202609150002_seed_westwood_materials.sql
 supabase/migrations/202609150003_quote_blank_financial_fields.sql
 supabase/migrations/202609180001_quote_material_unit_optional.sql
 supabase/migrations/202609210001_remove_skonto.sql
+supabase/migrations/202609210002_simplify_material_catalog.sql
 ```
 
-Se não quiser usar a CLI, executar os cinco ficheiros, pela mesma ordem, no SQL Editor do projeto Supabase. Não executar o seed antes da migration principal. A última migration consolida os descontos históricos e remove a coluna legacy antes de disponibilizar a nova versão do backoffice.
+Se não quiser usar a CLI, executar os seis ficheiros, pela mesma ordem, no SQL Editor do projeto Supabase. Não executar o seed antes da migration principal. A migration `202609210001_remove_skonto.sql` consolida os descontos históricos e remove a coluna legacy; `202609210002_simplify_material_catalog.sql` simplifica o catálogo ativo, migra os valores sugeridos e mantém as colunas antigas de materiais apenas para compatibilidade e histórico.
+
+O modelo ativo do catálogo usa apenas `name`, `consumption_per_m2`, `price_per_kg` e `price_per_container`. As colunas antigas de marca, variante, embalagem, preços base e desconto permanecem na tabela para compatibilidade com o histórico, mas já não são lidas nem editadas pelo backoffice.
 
 ## 4. Criar o primeiro utilizador
 

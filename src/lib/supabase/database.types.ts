@@ -31,6 +31,9 @@ export type MaterialRow = {
   id: string;
   brand: string;
   name: string;
+  consumption_per_m2: string | null;
+  price_per_kg: string | null;
+  price_per_container: string | null;
   variant: string | null;
   category: string | null;
   package_label: string | null;
@@ -178,6 +181,9 @@ export type MaterialInsert = {
   id?: string;
   brand?: string;
   name: string;
+  consumption_per_m2?: string | null;
+  price_per_kg?: string | null;
+  price_per_container?: string | null;
   variant?: string | null;
   category?: string | null;
   package_label?: string | null;

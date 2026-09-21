@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
-import { decimalInputToRate, formatMoney, rateToDecimalInput, type FormNumericValue } from "@/domain/quotes/format";
+import { formatMoney, formatNumber, type FormNumericValue } from "@/domain/quotes/format";
 import {
   createMaterialAction,
   toggleMaterialActiveAction,
@@ -16,43 +16,17 @@ import { FormFieldError } from "./form-field-error";
 import { BackofficeIcon } from "./backoffice-icon";
 
 type MaterialForm = {
-  brand: string;
   name: string;
-  variant: string;
-  category: string;
-  packageLabel: string;
-  packageQuantity: string;
-  packageUnit: string;
-  calculationType: "per_m2" | "fixed";
-  consumption: string;
-  consumptionUnit: string;
-  unit: string;
-  baseUnitPrice: string;
-  discountedUnitPrice: string;
-  basePackagePrice: string;
-  discountedPackagePrice: string;
-  discountRate: string;
-  notes: string;
+  consumptionPerM2: string;
+  pricePerKg: string;
+  pricePerContainer: string;
 };
 
 const emptyForm: MaterialForm = {
-  brand: "WestWood",
   name: "",
-  variant: "",
-  category: "",
-  packageLabel: "",
-  packageQuantity: "",
-  packageUnit: "",
-  calculationType: "per_m2",
-  consumption: "",
-  consumptionUnit: "",
-  unit: "kg",
-  baseUnitPrice: "",
-  discountedUnitPrice: "",
-  basePackagePrice: "",
-  discountedPackagePrice: "",
-  discountRate: "18",
-  notes: "",
+  consumptionPerM2: "",
+  pricePerKg: "",
+  pricePerContainer: "",
 };
 
 function formFromMaterial(material: MaterialSummary): MaterialForm {
@@ -60,50 +34,31 @@ function formFromMaterial(material: MaterialSummary): MaterialForm {
     value === null || value === undefined || value === "" ? "" : String(value);
 
   return {
-    brand: formText(material.brand),
     name: formText(material.name),
-    variant: formText(material.variant),
-    category: formText(material.category),
-    packageLabel: formText(material.package_label),
-    packageQuantity: formText(material.package_quantity),
-    packageUnit: formText(material.package_unit),
-    calculationType: material.calculation_type,
-    consumption: formText(material.consumption),
-    consumptionUnit: formText(material.consumption_unit),
-    unit: formText(material.unit),
-    baseUnitPrice: formText(material.base_unit_price),
-    discountedUnitPrice: formText(material.discounted_unit_price),
-    basePackagePrice: formText(material.base_package_price),
-    discountedPackagePrice: formText(material.discounted_package_price),
-    discountRate: rateToDecimalInput(material.discount_rate),
-    notes: formText(material.notes),
+    consumptionPerM2: formText(material.consumption_per_m2),
+    pricePerKg: formText(material.price_per_kg),
+    pricePerContainer: formText(material.price_per_container),
   };
 }
 
 function materialFromForm(formData: FormData, id: string): MaterialSummary {
   const text = (key: string) => String(formData.get(key) ?? "").trim() || null;
-  const decimal = (key: string) => text(key);
   return {
     id,
-    brand: String(formData.get("brand") ?? "").trim(),
     name: String(formData.get("name") ?? "").trim(),
-    variant: text("variant"),
-    category: text("category"),
-    package_label: text("packageLabel"),
-    package_quantity: decimal("packageQuantity"),
-    package_unit: text("packageUnit"),
-    calculation_type: String(formData.get("calculationType") ?? "per_m2") as MaterialSummary["calculation_type"],
-    consumption: decimal("consumption"),
-    consumption_unit: text("consumptionUnit"),
-    unit: String(formData.get("unit") ?? "").trim(),
-    base_unit_price: decimal("baseUnitPrice"),
-    discounted_unit_price: decimal("discountedUnitPrice"),
-    base_package_price: decimal("basePackagePrice"),
-    discounted_package_price: decimal("discountedPackagePrice"),
-    discount_rate: decimalInputToRate(String(formData.get("discountRate") ?? "")),
-    notes: text("notes"),
+    consumption_per_m2: text("consumptionPerM2"),
+    price_per_kg: text("pricePerKg"),
+    price_per_container: text("pricePerContainer"),
     is_active: true,
   };
+}
+
+function hasMaterialValue(value: FormNumericValue): boolean {
+  return value !== null && value !== undefined && String(value).trim() !== "";
+}
+
+function optionalMoney(value: FormNumericValue): string {
+  return hasMaterialValue(value) ? formatMoney(value) : "—";
 }
 
 export function MaterialManager({
@@ -127,7 +82,7 @@ export function MaterialManager({
     return materials.filter((material) => {
       const matchesQuery =
         !normalized ||
-        [material.name, material.variant, material.package_label, material.brand]
+        [material.name]
           .filter(Boolean)
           .some((value) => value?.toLocaleLowerCase("pt-PT").includes(normalized));
       return matchesQuery && (showInactive || material.is_active);
@@ -193,8 +148,8 @@ export function MaterialManager({
             );
           }
           return [...current, nextMaterial].sort((left, right) =>
-            `${left.name} ${left.variant ?? ""} ${left.package_label ?? ""}`.localeCompare(
-              `${right.name} ${right.variant ?? ""} ${right.package_label ?? ""}`,
+            left.name.localeCompare(
+              right.name,
               "pt-PT",
             ),
           );
@@ -256,53 +211,12 @@ export function MaterialManager({
           ) : null}
         </div>
         <form className="bo-manager-form-body" onSubmit={submit} noValidate>
-          <fieldset className="bo-form-group">
-            <legend>Identificação</legend>
-            <div className="bo-form-grid">
-          <MaterialField error={fieldErrors.brand} label="Marca *" name="brand" onChange={(value) => updateField("brand", value)} required value={form.brand} />
-          <MaterialField error={fieldErrors.name} label="Nome *" name="name" onChange={(value) => updateField("name", value)} required value={form.name} />
-          <MaterialField error={fieldErrors.variant} label="Variante" name="variant" onChange={(value) => updateField("variant", value)} value={form.variant} />
-          <MaterialField error={fieldErrors.category} label="Categoria" name="category" onChange={(value) => updateField("category", value)} value={form.category} />
-            </div>
-          </fieldset>
-          <fieldset className="bo-form-group">
-            <legend>Embalagem</legend>
-            <div className="bo-form-grid">
-          <MaterialField className="bo-field-wide bo-field-full" error={fieldErrors.packageLabel} label="Embalagem / descrição" name="packageLabel" onChange={(value) => updateField("packageLabel", value)} value={form.packageLabel} />
-          <MaterialField decimal error={fieldErrors.packageQuantity} label="Quantidade embalagem" name="packageQuantity" onChange={(value) => updateField("packageQuantity", value)} value={form.packageQuantity} />
-          <MaterialField error={fieldErrors.packageUnit} label="Unidade embalagem" name="packageUnit" onChange={(value) => updateField("packageUnit", value)} value={form.packageUnit} />
-            </div>
-          </fieldset>
-          <fieldset className="bo-form-group">
-            <legend>Consumo e cálculo</legend>
-            <div className="bo-form-grid">
-          <label>Tipo de cálculo
-            <select className="bo-input" name="calculationType" onChange={(event) => updateField("calculationType", event.target.value as MaterialForm["calculationType"])} value={form.calculationType}>
-              <option value="per_m2">Por m²</option>
-              <option value="fixed">Fixo / manual</option>
-            </select>
-          </label>
-          <MaterialField decimal error={fieldErrors.consumption} label="Consumo de referência" name="consumption" onChange={(value) => updateField("consumption", value)} value={form.consumption} />
-          <MaterialField error={fieldErrors.consumptionUnit} label="Unidade do consumo" name="consumptionUnit" onChange={(value) => updateField("consumptionUnit", value)} value={form.consumptionUnit} />
-          <MaterialField error={fieldErrors.unit} label="Unidade de cálculo *" name="unit" onChange={(value) => updateField("unit", value)} required value={form.unit} />
-            </div>
-          </fieldset>
-          <fieldset className="bo-form-group">
-            <legend>Preços</legend>
-            <div className="bo-form-grid">
-          <MaterialField decimal error={fieldErrors.baseUnitPrice} label="Preço base / unidade" name="baseUnitPrice" onChange={(value) => updateField("baseUnitPrice", value)} value={form.baseUnitPrice} />
-          <MaterialField decimal error={fieldErrors.discountedUnitPrice} label="Preço sugerido / unidade" name="discountedUnitPrice" onChange={(value) => updateField("discountedUnitPrice", value)} value={form.discountedUnitPrice} />
-          <MaterialField decimal error={fieldErrors.basePackagePrice} label="Preço base / embalagem" name="basePackagePrice" onChange={(value) => updateField("basePackagePrice", value)} value={form.basePackagePrice} />
-          <MaterialField decimal error={fieldErrors.discountedPackagePrice} label="Preço sugerido / embalagem" name="discountedPackagePrice" onChange={(value) => updateField("discountedPackagePrice", value)} value={form.discountedPackagePrice} />
-          <MaterialField decimal error={fieldErrors.discountRate} label="Desconto catálogo (%)" name="discountRate" onChange={(value) => updateField("discountRate", value)} value={form.discountRate} />
-            </div>
-          </fieldset>
-          <fieldset className="bo-form-group">
-            <legend>Notas</legend>
-            <div className="bo-form-grid">
-          <label className="bo-field-wide bo-field-full">Notas<textarea className="bo-input bo-textarea" name="notes" onChange={(event) => updateField("notes", event.target.value)} rows={3} value={form.notes} /></label>
-            </div>
-          </fieldset>
+          <div className="bo-form-grid bo-material-simple-grid">
+            <MaterialField error={fieldErrors.name} label="Nome do material *" name="name" onChange={(value) => updateField("name", value)} required value={form.name} />
+            <MaterialField decimal error={fieldErrors.consumptionPerM2} label="Consumo por m² (kg/m²)" name="consumptionPerM2" onChange={(value) => updateField("consumptionPerM2", value)} value={form.consumptionPerM2} />
+            <MaterialField decimal error={fieldErrors.pricePerKg} label="Preço por kg (CHF/kg)" name="pricePerKg" onChange={(value) => updateField("pricePerKg", value)} value={form.pricePerKg} />
+            <MaterialField decimal error={fieldErrors.pricePerContainer} label="Preço por lata/balde (CHF)" name="pricePerContainer" onChange={(value) => updateField("pricePerContainer", value)} value={form.pricePerContainer} />
+          </div>
           <div className="bo-form-actions">
             <button className="bo-button bo-button-primary" disabled={isPending} type="submit">
               {isPending ? "A guardar…" : editingId ? "Guardar alterações" : "Adicionar material"}
@@ -338,11 +252,9 @@ export function MaterialManager({
               <thead>
                 <tr>
                   <th>Material</th>
-                  <th>Variante</th>
-                  <th>Embalagem</th>
-                  <th>Consumo</th>
-                  <th>Preço base</th>
-                  <th>Preço sugerido</th>
+                  <th>Consumo / m²</th>
+                  <th>Preço / kg</th>
+                  <th>Preço lata/balde</th>
                   <th>Estado</th>
                   <th><span className="bo-sr-only">Ações</span></th>
                 </tr>
@@ -350,12 +262,10 @@ export function MaterialManager({
               <tbody>
                 {filtered.map((material) => (
                   <tr className={!material.is_active ? "is-inactive" : undefined} key={material.id}>
-                    <td data-label="Material"><strong>{material.name}</strong><small className="bo-table-subtext">{material.brand}</small></td>
-                    <td data-label="Variante">{material.variant ?? "—"}</td>
-                    <td data-label="Embalagem">{material.package_label ?? "—"}</td>
-                    <td data-label="Consumo">{material.consumption ? `${material.consumption} ${material.consumption_unit ?? ""}` : "Manual"}</td>
-                    <td data-label="Preço base">{formatMoney(material.base_unit_price)}</td>
-                    <td data-label="Preço sugerido"><strong>{formatMoney(material.discounted_unit_price)}</strong></td>
+                    <td data-label="Material"><strong>{material.name}</strong></td>
+                    <td data-label="Consumo / m²">{hasMaterialValue(material.consumption_per_m2) ? `${formatNumber(material.consumption_per_m2)} kg/m²` : "—"}</td>
+                    <td data-label="Preço / kg"><strong>{optionalMoney(material.price_per_kg)}</strong></td>
+                    <td data-label="Preço lata/balde">{optionalMoney(material.price_per_container)}</td>
                     <td data-label="Estado"><span className={`bo-status ${material.is_active ? "is-active" : "is-inactive"}`}>{material.is_active ? "Ativo" : "Inativo"}</span></td>
                     <td data-label="Ações">
                       <div className="bo-inline-actions">

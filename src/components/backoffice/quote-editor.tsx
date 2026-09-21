@@ -65,23 +65,10 @@ type QuoteEditorProps = {
 };
 
 type QuickMaterialForm = {
-  brand: string;
   name: string;
-  variant: string;
-  category: string;
-  packageLabel: string;
-  packageQuantity: string;
-  packageUnit: string;
-  calculationType: QuoteMaterialDraft["calculationType"];
-  consumption: string;
-  consumptionUnit: string;
-  unit: string;
-  baseUnitPrice: string;
-  discountedUnitPrice: string;
-  basePackagePrice: string;
-  discountedPackagePrice: string;
-  discountRate: string;
-  notes: string;
+  consumptionPerM2: string;
+  pricePerKg: string;
+  pricePerContainer: string;
 };
 
 const CUSTOM_UNIT_VALUE = "__custom__";
@@ -97,13 +84,25 @@ const surchargeBaseLabels: Record<QuoteSurchargeDraft["baseType"], string> = {
 };
 
 function materialLabel(material: MaterialSummary): string {
-  return [material.name, material.variant, material.package_label]
-    .filter(Boolean)
-    .join(" · ");
+  return material.name;
 }
 
 function materialSuggestedPrice(material: MaterialSummary): string {
-  return material.discounted_unit_price ?? material.base_unit_price ?? "0";
+  return material.price_per_kg === null
+    || material.price_per_kg === undefined
+    || String(material.price_per_kg).trim() === ""
+    ? ""
+    : String(material.price_per_kg);
+}
+
+function materialHasConsumption(material: MaterialSummary): boolean {
+  return material.consumption_per_m2 !== null
+    && material.consumption_per_m2 !== undefined
+    && String(material.consumption_per_m2).trim() !== "";
+}
+
+function materialHasPrice(material: MaterialSummary): boolean {
+  return materialSuggestedPrice(material) !== "";
 }
 
 function normalizedMaterialSearch(value: string): string {
@@ -112,23 +111,10 @@ function normalizedMaterialSearch(value: string): string {
 
 function quickMaterialFormFromLine(line: QuoteMaterialDraft): QuickMaterialForm {
   return {
-    brand: "",
     name: line.materialNameSnapshot,
-    variant: line.variantSnapshot,
-    category: "",
-    packageLabel: line.packageSnapshot,
-    packageQuantity: "",
-    packageUnit: "",
-    calculationType: line.calculationType,
-    consumption: line.consumptionOrQuantity,
-    consumptionUnit: "",
-    unit: normalizeMaterialUnit(line.unit),
-    baseUnitPrice: "",
-    discountedUnitPrice: line.unitPrice,
-    basePackagePrice: "",
-    discountedPackagePrice: "",
-    discountRate: "",
-    notes: line.notes,
+    consumptionPerM2: line.consumptionOrQuantity,
+    pricePerKg: line.unitPrice,
+    pricePerContainer: "",
   };
 }
 
@@ -341,19 +327,20 @@ export function QuoteEditor({
   }
 
   function selectMaterial(row: QuoteMaterialDraft, material: MaterialSummary) {
-    const factor = material.calculation_type === "per_m2" ? draft.area || "0" : "1";
+    const calculationType = materialHasConsumption(material) ? "per_m2" : "fixed";
+    const factor = calculationType === "per_m2" ? draft.area || "0" : "1";
     patchMaterial(row.id, {
       materialId: material.id,
       materialNameSnapshot: material.name,
-      variantSnapshot: material.variant ?? "",
-      packageSnapshot: material.package_label ?? "",
-      calculationType: material.calculation_type,
-      consumptionOrQuantity: material.consumption ?? "0",
-      unit: normalizeMaterialUnit(material.unit),
+      variantSnapshot: "",
+      packageSnapshot: "",
+      calculationType,
+      consumptionOrQuantity: String(material.consumption_per_m2 ?? "0"),
+      unit: "kg",
       unitPrice: materialSuggestedPrice(material),
       areaFactor: factor,
       areaFactorOverridden: false,
-      notes: material.notes ?? "",
+      notes: "",
     });
     setMaterialSearch((current) => ({
       ...current,
@@ -783,7 +770,7 @@ export function QuoteEditor({
               </div>
               <button className="bo-button bo-button-secondary" onClick={addMaterial} type="button"><BackofficeIcon name="plus" size={15} /> Adicionar material</button>
             </div>
-            <p className="bo-section-help">O preço sugerido usa o valor com desconto do catálogo. Os campos da linha são overrides apenas deste orçamento.</p>
+            <p className="bo-section-help">O preço por kg do catálogo é preenchido como sugestão. Os campos da linha são overrides apenas deste orçamento.</p>
             {draft.materials.length === 0 ? (
               <div className="bo-inline-empty"><strong>Ainda não adicionou materiais.</strong><span>Use “Adicionar material” para pesquisar no catálogo.</span></div>
             ) : (
@@ -796,16 +783,14 @@ export function QuoteEditor({
                     .filter((material) => {
                       if (!material.is_active && material.id !== line.materialId) return false;
                       if (!normalizedSearch) return true;
-                      return [material.name, material.variant, material.package_label, material.brand]
+                      return [material.name]
                         .filter(Boolean)
                         .some((value) => value?.toLocaleLowerCase("pt-PT").includes(normalizedSearch));
                     })
                     .slice(0, 8);
                   const hasExactCatalogMatch = materials.some((material) =>
                     material.is_active &&
-                    [material.name, materialLabel(material)].some(
-                      (value) => normalizedMaterialSearch(value) === normalizedSearch,
-                    ),
+                    normalizedMaterialSearch(material.name) === normalizedSearch,
                   );
                   const isFreeMaterial = Boolean(line.materialNameSnapshot.trim() && !line.materialId);
                   const knownUnit = knownMaterialUnit(line.unit);
@@ -899,9 +884,9 @@ export function QuoteEditor({
                                   aria-selected={material.id === line.materialId}
                                   type="button"
                                 >
-                                  <strong>{material.name}{material.variant ? ` · ${material.variant}` : ""}</strong>
+                                  <strong>{material.name}</strong>
                                   <small>
-                                    {material.package_label ?? "Sem embalagem"} · {material.consumption ? `${material.consumption} ${material.consumption_unit ?? ""}` : "Consumo manual"} · {formatMoney(materialSuggestedPrice(material))}/{material.unit}
+                                    {materialHasConsumption(material) ? `${formatNumber(material.consumption_per_m2)} kg/m²` : "Consumo manual"} · {materialHasPrice(material) ? `${formatMoney(materialSuggestedPrice(material))}/kg` : "Preço manual"}{material.price_per_container !== null && material.price_per_container !== undefined && String(material.price_per_container).trim() !== "" ? ` · ${formatMoney(material.price_per_container)}/lata` : ""}
                                   </small>
                                 </button>
                               )) : <div className="bo-combobox-empty"><p>Nenhum material encontrado.</p><Link href="/backoffice/materiais">Gerir materiais</Link></div>}
@@ -1355,87 +1340,36 @@ function QuickMaterialDialog({
         <p id="quick-material-description">Guarde este material para o reutilizar em futuros orçamentos.</p>
         <div className="bo-dialog-form-grid">
           <QuickMaterialField
-            error={errors.brand}
-            field="brand"
-            form={form}
-            label="Marca *"
-            onChange={onChange}
-            required
-          />
-          <QuickMaterialField
             error={errors.name}
             field="name"
             form={form}
-            label="Nome *"
-            onChange={onChange}
-            readOnly
-            required
-          />
-          <QuickMaterialField
-            error={errors.variant}
-            field="variant"
-            form={form}
-            label="Variante"
-            onChange={onChange}
-          />
-          <QuickMaterialField
-            error={errors.packageLabel}
-            field="packageLabel"
-            form={form}
-            label="Embalagem / descrição"
-            onChange={onChange}
-          />
-          <label>
-            Tipo de cálculo
-            <select
-              className="bo-input"
-              name="calculationType"
-              onChange={(event) => onChange("calculationType", event.target.value)}
-              value={form.calculationType}
-            >
-              <option value="per_m2">Por m²</option>
-              <option value="fixed">Fixo / manual</option>
-            </select>
-          </label>
-          <QuickMaterialField
-            decimal
-            error={errors.consumption}
-            field="consumption"
-            form={form}
-            label="Consumo de referência"
-            onChange={onChange}
-          />
-          <QuickMaterialField
-            error={errors.consumptionUnit}
-            field="consumptionUnit"
-            form={form}
-            label="Unidade do consumo"
-            onChange={onChange}
-          />
-          <QuickMaterialField
-            error={errors.unit}
-            field="unit"
-            form={form}
-            label="Unidade de cálculo *"
+            label="Nome do material *"
             onChange={onChange}
             required
           />
           <QuickMaterialField
             decimal
-            error={errors.discountedUnitPrice}
-            field="discountedUnitPrice"
+            error={errors.consumptionPerM2}
+            field="consumptionPerM2"
             form={form}
-            label="Preço sugerido / unidade"
+            label="Consumo por m² (kg/m²)"
             onChange={onChange}
           />
           <QuickMaterialField
-            className="bo-field-wide bo-field-full"
-            error={errors.notes}
-            field="notes"
+            decimal
+            error={errors.pricePerKg}
+            field="pricePerKg"
             form={form}
-            label="Notas"
+            label="Preço por kg (CHF/kg)"
             onChange={onChange}
-            textarea
+          />
+          <QuickMaterialField
+            decimal
+            error={errors.pricePerContainer}
+            field="pricePerContainer"
+            form={form}
+            label="Preço por lata/balde (CHF)"
+            onChange={onChange}
           />
         </div>
         <div className="bo-dialog-actions">
