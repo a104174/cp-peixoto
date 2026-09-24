@@ -1,8 +1,10 @@
 "use client";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   useTransition,
   type FormEvent,
@@ -139,6 +141,17 @@ function decimalLessThan(left: string, right: string): boolean {
   }
 }
 
+function resizeTextareaToContent(textarea: HTMLTextAreaElement | null) {
+  if (!textarea) return;
+
+  textarea.style.height = "auto";
+  const styles = window.getComputedStyle(textarea);
+  const borderHeight =
+    Number.parseFloat(styles.borderTopWidth) +
+    Number.parseFloat(styles.borderBottomWidth);
+  textarea.style.height = `${textarea.scrollHeight + borderHeight}px`;
+}
+
 export function QuoteEditor({
   initialDraft,
   initialClientPdfWorkDescription = null,
@@ -172,6 +185,11 @@ export function QuoteEditor({
   const [pendingRemoval, setPendingRemoval] = useState<{ title: string; description: string; remove: () => void } | null>(null);
   const [isSavingQuote, setIsSavingQuote] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const internalNotesTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const attachInternalNotesTextarea = useCallback((textarea: HTMLTextAreaElement | null) => {
+    internalNotesTextareaRef.current = textarea;
+    resizeTextareaToContent(textarea);
+  }, []);
 
   const calculation = useMemo(() => calculateQuote(draft), [draft]);
   const isDirty = quoteDraftHasUnsavedChanges(draft, savedSnapshot);
@@ -184,6 +202,15 @@ export function QuoteEditor({
         : draft.internalNotes.trim()
           ? { label: "Guardado", tone: "saved" }
           : { label: "Sem notas", tone: "empty" };
+
+  useEffect(() => {
+    const textarea = internalNotesTextareaRef.current;
+    if (!textarea) return;
+
+    const resizeOnViewportChange = () => resizeTextareaToContent(textarea);
+    window.addEventListener("resize", resizeOnViewportChange);
+    return () => window.removeEventListener("resize", resizeOnViewportChange);
+  }, []);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -671,7 +698,11 @@ export function QuoteEditor({
           aria-describedby="quote-internal-notes-help"
           className="bo-input bo-textarea"
           id="quote-internal-notes"
-          onChange={(event) => updateHeader("internalNotes", event.target.value)}
+          ref={attachInternalNotesTextarea}
+          onChange={(event) => {
+            resizeTextareaToContent(event.currentTarget);
+            updateHeader("internalNotes", event.currentTarget.value);
+          }}
           placeholder="Ex.: aguardar resposta, obra concluída, pagamento pendente..."
           rows={3}
           value={draft.internalNotes}

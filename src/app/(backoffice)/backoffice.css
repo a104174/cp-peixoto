@@ -431,8 +431,8 @@
 }
 .bo-quote-internal-notes {
   display: grid;
-  width: min(100%, 960px);
-  gap: 11px;
+  width: 100%;
+  gap: 12px;
   border: 1px solid var(--bo-border);
   border-left: 3px solid var(--bo-accent);
   border-radius: var(--bo-radius-md);
@@ -536,13 +536,15 @@
   color: var(--bo-text-subtle);
 }
 .bo-quote-internal-notes textarea {
+  width: 100%;
   min-height: 82px;
-  max-height: 260px;
-  overflow-y: auto;
+  height: auto;
+  max-height: none;
+  overflow: hidden;
   border-color: var(--bo-border-strong);
   background: #fff;
   padding: 10px 12px;
-  resize: vertical;
+  resize: none;
   line-height: 1.55;
   transition:
     border-color 140ms var(--bo-ease),
