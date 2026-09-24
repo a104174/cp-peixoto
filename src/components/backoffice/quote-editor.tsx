@@ -53,6 +53,7 @@ import type {
 import {
   createClientAction,
   createMaterialFromQuoteAction,
+  deleteQuoteAction,
   saveQuoteAction,
 } from "@/lib/backoffice/actions";
 import type { ClientSummary, MaterialSummary } from "@/lib/backoffice/data";
@@ -184,6 +185,8 @@ export function QuoteEditor({
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<{ title: string; description: string; remove: () => void } | null>(null);
   const [isSavingQuote, setIsSavingQuote] = useState(false);
+  const [isDeleteQuoteDialogOpen, setIsDeleteQuoteDialogOpen] = useState(false);
+  const [isDeletingQuote, setIsDeletingQuote] = useState(false);
   const [isPending, startTransition] = useTransition();
   const internalNotesTextareaRef = useRef<HTMLTextAreaElement>(null);
   const attachInternalNotesTextarea = useCallback((textarea: HTMLTextAreaElement | null) => {
@@ -603,6 +606,35 @@ export function QuoteEditor({
     });
   }
 
+  async function deleteQuote() {
+    if (!draft.id || isDeletingQuote) return;
+
+    setIsDeletingQuote(true);
+    setFeedback(null);
+    try {
+      const result = await deleteQuoteAction(draft.id);
+      if (!result.success) {
+        if (result.code === "AUTH_REQUIRED") {
+          router.push("/backoffice/login?reason=session-expired");
+          return;
+        }
+        setFeedback({ type: "error", message: result.message });
+        setIsDeleteQuoteDialogOpen(false);
+        return;
+      }
+
+      router.push("/backoffice/orcamentos?deleted=1");
+    } catch {
+      setFeedback({
+        type: "error",
+        message: "Não foi possível eliminar o orçamento. Tente novamente.",
+      });
+      setIsDeleteQuoteDialogOpen(false);
+    } finally {
+      setIsDeletingQuote(false);
+    }
+  }
+
   function createQuickClient(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
@@ -664,6 +696,26 @@ export function QuoteEditor({
               prefillDescription={draft.description}
               quoteId={draft.id}
             />
+          ) : null}
+          {draft.id && draft.quoteNumber ? (
+            <details className="bo-quote-more-actions">
+              <summary className="bo-button bo-button-secondary">
+                <BackofficeIcon name="menu" size={15} /> Mais ações
+              </summary>
+              <div className="bo-quote-more-actions-popover">
+                <button
+                  className="bo-quote-more-actions-delete"
+                  disabled={isPending || isDeletingQuote}
+                  onClick={(event) => {
+                    event.currentTarget.closest<HTMLDetailsElement>("details")?.removeAttribute("open");
+                    setIsDeleteQuoteDialogOpen(true);
+                  }}
+                  type="button"
+                >
+                  <BackofficeIcon name="archive" size={14} /> Eliminar orçamento
+                </button>
+              </div>
+            </details>
           ) : null}
           <button className="bo-button bo-button-primary" disabled={isPending} onClick={save} type="button">
             <BackofficeIcon name="save" size={16} /> {isPending ? "A guardar…" : "Guardar orçamento"}
@@ -1279,6 +1331,18 @@ export function QuoteEditor({
         }}
         open={Boolean(pendingRemoval)}
         title={pendingRemoval?.title ?? "Remover linha?"}
+      />
+      <ConfirmDialog
+        confirmLabel="Eliminar orçamento"
+        confirmingLabel="A eliminar…"
+        description={`O orçamento ${draft.quoteNumber} será removido do backoffice e deixará de aparecer no histórico do cliente.`}
+        onCancel={() => {
+          if (!isDeletingQuote) setIsDeleteQuoteDialogOpen(false);
+        }}
+        onConfirm={deleteQuote}
+        open={isDeleteQuoteDialogOpen}
+        pending={isDeletingQuote}
+        title="Eliminar orçamento?"
       />
     </div>
   );

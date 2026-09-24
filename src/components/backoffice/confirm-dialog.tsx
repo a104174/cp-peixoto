@@ -7,6 +7,8 @@ type ConfirmDialogProps = {
   title: string;
   description: string;
   confirmLabel: string;
+  confirmingLabel?: string;
+  pending?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 };
@@ -16,6 +18,8 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  confirmingLabel,
+  pending = false,
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
@@ -32,11 +36,23 @@ export function ConfirmDialog({
         <h2 id="bo-confirm-title">{title}</h2>
         <p id="bo-confirm-description">{description}</p>
         <div className="bo-dialog-actions">
-          <button className="bo-button bo-button-secondary" onClick={onCancel} type="button">
+          <button
+            aria-disabled={pending}
+            className="bo-button bo-button-secondary"
+            onClick={() => {
+              if (!pending) onCancel();
+            }}
+            type="button"
+          >
             Cancelar
           </button>
-          <button className="bo-button bo-button-danger" onClick={onConfirm} type="button">
-            {confirmLabel}
+          <button
+            className="bo-button bo-button-danger"
+            disabled={pending}
+            onClick={onConfirm}
+            type="button"
+          >
+            {pending ? (confirmingLabel ?? confirmLabel) : confirmLabel}
           </button>
         </div>
       </div>

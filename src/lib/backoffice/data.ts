@@ -75,7 +75,7 @@ export type DashboardStats = {
 };
 
 const quoteColumns =
-  "id,quote_number,client_id,client_name_snapshot,client_email_snapshot,client_phone_snapshot,client_address_snapshot,project_location,quote_date,description,internal_notes,area,area_unit,hourly_rate,desired_margin,commercial_discount,fixed_deduction,client_pdf_work_description,materials_total,labor_total,subcontracts_total,equipment_total,direct_costs_total,surcharges_total,total_cost,recommended_gross,manual_gross,gross_used,net_value,profit,real_margin,total_hours,created_at,updated_at";
+  "id,quote_number,client_id,client_name_snapshot,client_email_snapshot,client_phone_snapshot,client_address_snapshot,project_location,quote_date,description,internal_notes,area,area_unit,hourly_rate,desired_margin,commercial_discount,fixed_deduction,client_pdf_work_description,materials_total,labor_total,subcontracts_total,equipment_total,direct_costs_total,surcharges_total,total_cost,recommended_gross,manual_gross,gross_used,net_value,profit,real_margin,total_hours,deleted_at,created_at,updated_at";
 const quoteMaterialColumns =
   "id,quote_id,material_id,position,stage,material_name_snapshot,variant_snapshot,package_snapshot,calculation_type,consumption_or_quantity,unit,unit_price,area_factor,cost_total,notes,created_at,updated_at";
 const quoteLaborColumns =
@@ -167,6 +167,7 @@ export async function listQuotes(): Promise<QuoteListItem[]> {
       .select(
         "id,quote_number,client_id,client_name_snapshot,project_location,quote_date,area,area_unit,net_value,updated_at",
       )
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     perf.mark("query", { rows: data?.length ?? 0, ok: !error });
@@ -196,6 +197,7 @@ export async function getClientWithQuotes(id: string): Promise<ClientWithQuotes 
         .from("quotes")
         .select("id,quote_number,project_location,quote_date,net_value,real_margin,updated_at")
         .eq("client_id", id)
+        .is("deleted_at", null)
         .order("quote_date", { ascending: false })
         .order("created_at", { ascending: false }),
     ]);
@@ -226,7 +228,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     }
 
     const [quotes, clients, materials] = await Promise.all([
-      authenticated.client.from("quotes").select("id", { count: "exact", head: true }),
+      authenticated.client
+        .from("quotes")
+        .select("id", { count: "exact", head: true })
+        .is("deleted_at", null),
       authenticated.client
         .from("clients")
         .select("id", { count: "exact", head: true })
@@ -290,7 +295,12 @@ export async function getQuoteById(
 
     const [quoteResult, materialsResult, laborResult, subcontractResult, equipmentResult, surchargeResult] =
       await Promise.all([
-        authenticated.client.from("quotes").select(quoteColumns).eq("id", id).maybeSingle(),
+        authenticated.client
+          .from("quotes")
+          .select(quoteColumns)
+          .eq("id", id)
+          .is("deleted_at", null)
+          .maybeSingle(),
         authenticated.client
           .from("quote_materials")
           .select(quoteMaterialColumns)
@@ -361,6 +371,7 @@ export async function getClientQuotePdfSource(
         "quote_number,quote_date,client_name_snapshot,description,project_location,net_value,client_pdf_work_description",
       )
       .eq("id", id)
+      .is("deleted_at", null)
       .maybeSingle();
     perf.mark("query", { rows: data ? 1 : 0, ok: !error });
     if (error) loadFailed("load client quote PDF", error);

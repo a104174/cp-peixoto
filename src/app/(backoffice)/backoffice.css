@@ -429,6 +429,61 @@
   flex-wrap: wrap;
   gap: 9px;
 }
+.bo-quote-more-actions {
+  position: relative;
+  flex: 0 0 auto;
+}
+.bo-quote-more-actions > summary {
+  display: inline-flex;
+  list-style: none;
+}
+.bo-quote-more-actions > summary::-webkit-details-marker {
+  display: none;
+}
+.bo-quote-more-actions > summary:focus-visible {
+  outline: 3px solid rgb(185 145 80 / 30%);
+  outline-offset: 2px;
+}
+.bo-quote-more-actions-popover {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 7px);
+  right: 0;
+  min-width: 218px;
+  border: 1px solid var(--bo-border);
+  border-radius: var(--bo-radius-md);
+  background: var(--bo-surface);
+  box-shadow: var(--bo-shadow-md);
+  padding: 5px;
+}
+.bo-quote-more-actions-delete {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--bo-text);
+  cursor: pointer;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: left;
+}
+.bo-quote-more-actions-delete:hover:not(:disabled),
+.bo-quote-more-actions-delete:focus-visible {
+  background: var(--bo-surface-muted);
+}
+.bo-quote-more-actions-delete:focus-visible {
+  outline: 2px solid rgb(185 145 80 / 32%);
+  outline-offset: 1px;
+}
+.bo-quote-more-actions-delete:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 .bo-quote-internal-notes {
   display: grid;
   width: 100%;
@@ -2355,6 +2410,12 @@ textarea.bo-input {
   }
   .bo-heading-actions .bo-button {
     flex: 1;
+  }
+  .bo-quote-more-actions {
+    flex: 1 1 150px;
+  }
+  .bo-quote-more-actions > summary {
+    width: 100%;
   }
   .bo-stat-grid {
     grid-template-columns: 1fr;

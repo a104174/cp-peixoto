@@ -58,6 +58,7 @@ function quoteFixture(materialCount = 2): QuoteWithLines {
       profit: "2293.5096",
       real_margin: "0.1048",
       total_hours: "82",
+      deleted_at: null,
       created_at: timestamp,
       updated_at: timestamp,
     },

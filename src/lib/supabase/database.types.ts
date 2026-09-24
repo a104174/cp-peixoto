@@ -87,6 +87,7 @@ export type QuoteRow = {
   profit: string;
   real_margin: string;
   total_hours: string;
+  deleted_at: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -241,6 +242,7 @@ export type QuoteInsert = {
   profit?: string;
   real_margin?: string;
   total_hours?: string;
+  deleted_at?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -363,6 +365,10 @@ export type Database = {
       };
       save_client_pdf_work_description: {
         Args: { target_quote_id: string; work_description: string };
+        Returns: boolean;
+      };
+      soft_delete_quote: {
+        Args: { target_quote_id: string };
         Returns: boolean;
       };
     };

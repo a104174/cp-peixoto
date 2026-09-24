@@ -15,7 +15,7 @@ function formatDate(value: string): string {
 export default async function QuotesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; deleted?: string }>;
 }) {
   const quotes = await listQuotes();
   const params = await searchParams;
@@ -44,6 +44,12 @@ export default async function QuotesPage({
           <BackofficeIcon name="plus" size={16} /> Novo orçamento
         </Link>
       </div>
+
+      {params.deleted === "1" ? (
+        <p aria-live="polite" className="bo-form-feedback bo-global-feedback" role="status">
+          Orçamento eliminado.
+        </p>
+      ) : null}
 
       <form className="bo-toolbar bo-list-toolbar" method="get">
         <label className="bo-sr-only" htmlFor="quote-search">Pesquisar orçamentos</label>

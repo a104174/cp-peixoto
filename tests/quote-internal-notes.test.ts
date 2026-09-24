@@ -51,6 +51,7 @@ function savedQuoteFixture(internalNotes: string | null): QuoteWithLines {
       profit: "0",
       real_margin: "0",
       total_hours: "0",
+      deleted_at: null,
       created_at: timestamp,
       updated_at: timestamp,
     },

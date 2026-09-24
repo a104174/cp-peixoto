@@ -437,3 +437,52 @@ export async function saveQuoteAction(input: unknown): Promise<SaveQuoteResult> 
     return { success: true, quoteId: data.id, quoteNumber: data.quote_number, message: draft.id ? "Alterações guardadas." : `Orçamento ${data.quote_number} criado com sucesso.` };
   });
 }
+
+export async function deleteQuoteAction(id: string): Promise<ActionResult> {
+  return withPerf("quote.delete", async (perf) => {
+    const authenticated = await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) return authRequired();
+
+    const parsedId = z.string().uuid().safeParse(id);
+    if (!parsedId.success) {
+      return {
+        success: false,
+        code: "NOT_FOUND",
+        message: "Orçamento não encontrado.",
+      };
+    }
+
+    const { data, error } = await authenticated.client.rpc("soft_delete_quote", {
+      target_quote_id: parsedId.data,
+    });
+    perf.mark("rpc", { rows: data ? 1 : 0, ok: !error });
+
+    if (error) {
+      logDatabaseError("delete quote", error);
+      return {
+        success: false,
+        code: "SAVE_FAILED",
+        message: "Não foi possível eliminar o orçamento. Tente novamente.",
+      };
+    }
+    if (!data) {
+      return {
+        success: false,
+        code: "NOT_FOUND",
+        message: "Orçamento não encontrado.",
+      };
+    }
+
+    revalidatePath("/backoffice", "page");
+    revalidatePath("/backoffice/orcamentos", "page");
+    revalidatePath("/backoffice/orcamentos/[id]", "page");
+    revalidatePath("/backoffice/clientes/[id]", "page");
+
+    return {
+      success: true,
+      id: parsedId.data,
+      message: "Orçamento eliminado.",
+    };
+  });
+}
