@@ -70,6 +70,7 @@ export interface QuoteDraft {
   projectLocation: string;
   quoteDate: string;
   description: string;
+  internalNotes: string;
   area: DecimalString;
   areaUnit: string;
   hourlyRate: DecimalString;

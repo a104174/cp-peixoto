@@ -65,6 +65,7 @@ export type QuoteRow = {
   project_location: string | null;
   quote_date: string;
   description: string | null;
+  internal_notes: string | null;
   area: string | null;
   area_unit: string;
   hourly_rate: string | null;
@@ -218,6 +219,7 @@ export type QuoteInsert = {
   project_location?: string | null;
   quote_date?: string;
   description?: string | null;
+  internal_notes?: string | null;
   area?: string | null;
   area_unit?: string;
   hourly_rate?: string | null;

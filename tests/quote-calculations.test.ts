@@ -40,6 +40,7 @@ function baseDraft(overrides: Partial<QuoteDraft> = {}): QuoteDraft {
     projectLocation: "",
     quoteDate: "2026-09-15",
     description: "Revestimento de pavimento",
+    internalNotes: "",
     area: "600",
     areaUnit: "m²",
     hourlyRate: "52",

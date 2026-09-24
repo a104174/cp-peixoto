@@ -27,6 +27,10 @@ import {
   type CalculationWarning,
 } from "@/domain/quotes/calculations";
 import {
+  quoteDraftHasUnsavedChanges,
+  serializeQuoteDraft,
+} from "@/domain/quotes/snapshot";
+import {
   attachCatalogMaterial,
   materialNameOverride,
 } from "@/domain/quotes/material-catalog";
@@ -163,13 +167,13 @@ export function QuoteEditor({
     successMessage ? { type: "success", message: successMessage } : null,
   );
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
-  const [savedSnapshot, setSavedSnapshot] = useState(() => JSON.stringify(initialDraft));
+  const [savedSnapshot, setSavedSnapshot] = useState(() => serializeQuoteDraft(initialDraft));
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<{ title: string; description: string; remove: () => void } | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const calculation = useMemo(() => calculateQuote(draft), [draft]);
-  const isDirty = JSON.stringify(draft) !== savedSnapshot;
+  const isDirty = quoteDraftHasUnsavedChanges(draft, savedSnapshot);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -210,6 +214,7 @@ export function QuoteEditor({
       | "projectLocation"
       | "quoteDate"
       | "description"
+      | "internalNotes"
       | "area"
       | "areaUnit"
       | "hourlyRate"
@@ -541,7 +546,7 @@ export function QuoteEditor({
           id: result.quoteId ?? current.id,
           quoteNumber: result.quoteNumber ?? current.quoteNumber,
         }));
-        setSavedSnapshot(JSON.stringify(savedDraft));
+        setSavedSnapshot(serializeQuoteDraft(savedDraft));
         if (!initialDraft.id) {
           router.replace(`/backoffice/orcamentos/${result.quoteId}?saved=created`);
         } else {
@@ -618,6 +623,29 @@ export function QuoteEditor({
           </button>
         </div>
       </div>
+
+      <section
+        aria-labelledby="quote-internal-notes-label"
+        className="bo-quote-internal-notes"
+      >
+        <div className="bo-quote-internal-notes-copy">
+          <label htmlFor="quote-internal-notes" id="quote-internal-notes-label">
+            Notas internas
+          </label>
+          <p id="quote-internal-notes-help">
+            Visível apenas no backoffice. Não aparece nos PDFs.
+          </p>
+        </div>
+        <textarea
+          aria-describedby="quote-internal-notes-help"
+          className="bo-input bo-textarea"
+          id="quote-internal-notes"
+          onChange={(event) => updateHeader("internalNotes", event.target.value)}
+          placeholder="Ex.: obra concluída, pagamento pendente, aguardar resposta..."
+          rows={2}
+          value={draft.internalNotes}
+        />
+      </section>
 
       <nav aria-label="Secções do orçamento" className="bo-section-nav">
         <a href="#quote-project">Dados da obra</a>
@@ -1172,7 +1200,7 @@ export function QuoteEditor({
         onCancel={() => setPendingNavigation(null)}
         onConfirm={() => {
           if (!pendingNavigation) return;
-          setSavedSnapshot(JSON.stringify(draft));
+          setSavedSnapshot(serializeQuoteDraft(draft));
           router.push(pendingNavigation);
           setPendingNavigation(null);
         }}

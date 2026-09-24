@@ -121,6 +121,7 @@ export const quoteDraftSchema = z.object({
   projectLocation: z.string().trim().max(240),
   quoteDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   description: z.string().trim().max(2_000),
+  internalNotes: z.string().default(""),
   area: decimalText,
   areaUnit: z.string().trim().min(1).max(16),
   hourlyRate: decimalText,

@@ -429,6 +429,36 @@
   flex-wrap: wrap;
   gap: 9px;
 }
+.bo-quote-internal-notes {
+  display: grid;
+  grid-template-columns: minmax(170px, 0.3fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--bo-border);
+  border-left: 3px solid var(--bo-accent);
+  border-radius: var(--bo-radius-sm);
+  background: var(--bo-surface);
+  padding: 11px 14px;
+}
+.bo-quote-internal-notes-copy {
+  display: grid;
+  gap: 4px;
+}
+.bo-quote-internal-notes-copy label {
+  color: var(--bo-text);
+  font-size: 12px;
+  font-weight: 720;
+}
+.bo-quote-internal-notes-copy p {
+  margin: 0;
+  color: var(--bo-text-muted);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+.bo-quote-internal-notes textarea {
+  min-height: 58px;
+  resize: vertical;
+}
 .bo-stat-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2202,6 +2232,12 @@ textarea.bo-input {
   }
   .bo-page-heading h1 {
     font-size: 30px;
+  }
+  .bo-quote-internal-notes {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 8px;
+    padding: 11px 12px;
   }
   .bo-page-heading > .bo-button,
   .bo-heading-actions {

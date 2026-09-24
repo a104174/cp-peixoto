@@ -65,6 +65,7 @@ export function createEmptyQuoteDraft(): QuoteDraft {
     projectLocation: "",
     quoteDate: new Date().toISOString().slice(0, 10),
     description: "",
+    internalNotes: "",
     area: "",
     areaUnit: "m²",
     hourlyRate: "",

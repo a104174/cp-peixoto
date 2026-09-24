@@ -36,6 +36,7 @@ function quoteFixture(materialCount = 2): QuoteWithLines {
       project_location: "Zürich",
       quote_date: "2026-09-18",
       description: "Revestimento de pavimento industrial",
+      internal_notes: null,
       area: "120",
       area_unit: "m²",
       hourly_rate: "52",
@@ -321,6 +322,20 @@ describe("PDF interno e PDF cliente do orçamento", () => {
     ]) {
       expect(serialized).not.toContain(privateValue);
     }
+  });
+
+  it("não inclui notas internas em nenhum dos modelos PDF", () => {
+    const source = quoteFixture();
+    source.quote.internal_notes = "INTERNAL_ONLY_NAO_EXPORTAR_4d9fc";
+
+    const internalModel = buildInternalQuotePdfModel(source);
+    const clientModel = buildClientQuotePdfModel(
+      { quote: source.quote },
+      "Vorbereitung des Untergrundes.",
+    );
+
+    expect(JSON.stringify(internalModel)).not.toContain(source.quote.internal_notes);
+    expect(JSON.stringify(clientModel)).not.toContain(source.quote.internal_notes);
   });
 
   it("usa formatação CHF suíça e nomes de ficheiro seguros", () => {
