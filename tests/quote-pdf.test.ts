@@ -6,9 +6,13 @@ import { describe, expect, it } from "vitest";
 
 import type { QuoteWithLines } from "../src/lib/backoffice/data";
 import {
-  buildCustomerQuotePdfModel,
-  quotePdfFilename,
+  buildClientQuotePdfModel,
+  buildInternalQuotePdfModel,
+  clientQuotePdfFilename,
+  formatSwissAmount,
+  internalQuotePdfFilename,
 } from "../src/lib/backoffice/pdf/model";
+import { renderInternalQuotePdf } from "../src/lib/backoffice/pdf/internal-render";
 import { renderCustomerQuotePdf } from "../src/lib/backoffice/pdf/render";
 
 function quoteFixture(materialCount = 2): QuoteWithLines {
@@ -31,6 +35,7 @@ function quoteFixture(materialCount = 2): QuoteWithLines {
       desired_margin: "0.1069",
       commercial_discount: "0.02",
       fixed_deduction: "150",
+      client_pdf_work_description: null,
       materials_total: "8649",
       labor_total: "4264",
       subcontracts_total: "2220",
@@ -53,7 +58,7 @@ function quoteFixture(materialCount = 2): QuoteWithLines {
       quote_id: "00000000-0000-0000-0000-000000000101",
       material_id: null,
       position: index,
-      stage: "Aplicação interna",
+      stage: `Etapa ${index + 1}`,
       material_name_snapshot: `Wecryl produto profissional ${index + 1}`,
       variant_snapshot: index % 3 === 0 ? "PG1" : null,
       package_snapshot: "10 kg",
@@ -63,7 +68,7 @@ function quoteFixture(materialCount = 2): QuoteWithLines {
       unit_price: "22.22",
       area_factor: "120",
       cost_total: "1333.2",
-      notes: "Nota técnica interna que não pode aparecer",
+      notes: index === 0 ? "Nota técnica interna completa" : null,
       created_at: timestamp,
       updated_at: timestamp,
     })),
@@ -146,145 +151,163 @@ async function writeQaFixture(name: string, bytes: Uint8Array): Promise<void> {
   await writeFile(path.join(outputDirectory, name), bytes);
 }
 
-describe("PDF comercial do orçamento", () => {
-  it("projeta apenas informação destinada ao cliente", () => {
-    const model = buildCustomerQuotePdfModel(quoteFixture());
+async function expectA4(bytes: Uint8Array): Promise<PDFDocument> {
+  expect(bytes.subarray(0, 4).toString()).toBe("37,80,68,70");
+  const document = await PDFDocument.load(bytes);
+  expect(document.getPages().every((page) => {
+    const { width, height } = page.getSize();
+    return Math.abs(width - 595.28) < 0.1 && Math.abs(height - 841.89) < 0.1;
+  })).toBe(true);
+  return document;
+}
+
+describe("PDF interno e PDF cliente do orçamento", () => {
+  it("inclui no PDF interno todos os snapshots, campos e totais guardados", () => {
+    const source = quoteFixture(3);
+    source.surcharges.unshift({
+      ...source.surcharges[0],
+      id: "surcharge-before",
+      position: 0,
+      name: "Primeiro acréscimo",
+      base_type: "materials",
+      base_amount: "8649",
+      amount: "100",
+    });
+    source.surcharges[1].position = 1;
+
+    const model = buildInternalQuotePdfModel(source);
+    expect(model.identification).toContainEqual({ label: "Cliente", value: "José Müller & Filhos" });
+    expect(model.identification).toContainEqual({ label: "Código postal / localidade", value: "8001 Zürich" });
+    expect(model.conditions).toContainEqual({ label: "Preço / hora", value: "CHF 52,00" });
+    expect(model.tables[0].rows[0]).toContain("Nota técnica interna completa");
+    expect(model.tables[0].rows[0]).toContain("Etapa 1");
+    expect(model.tables[0].rows[0][0]).toContain("10 kg");
+    expect(model.tables[1].rows[0]).toContain("Nota privada de mão de obra");
+    expect(model.tables[2].rows[0]).toContain("Custo reservado");
+    expect(model.tables[3].rows[0]).toContain("Nota privada de equipamento");
+    expect(model.tables[4].rows.map((row) => row[1])).toEqual([
+      "Primeiro acréscimo",
+      "Administração interna",
+    ]);
+    expect(model.financialSummary).toContainEqual({
+      label: "Dedução / m²",
+      value: "CHF 1,25",
+    });
+    expect(model.financialSummary).toContainEqual({
+      label: "Valor líquido / m²",
+      value: "CHF 182,38",
+    });
+    expect(model.financialSummary).toContainEqual({
+      label: "Valor líquido / hora",
+      value: "CHF 266,89",
+    });
+    expect(model.conditions.some((field) => field.label.toLocaleLowerCase().includes("skonto"))).toBe(false);
+  });
+
+  it("mantém o PDF cliente limitado aos campos comerciais autorizados", () => {
+    const source = quoteFixture();
+    source.quote.client_pdf_work_description = "Texto guardado previamente";
+    const model = buildClientQuotePdfModel(
+      { quote: source.quote },
+      "Preparação do suporte.\n\nAplicação do revestimento.",
+    );
     const serialized = JSON.stringify(model);
 
     expect(model).toMatchObject({
       quoteNumber: "CP-2026-0001",
       quoteDate: "18.09.2026",
       clientName: "José Müller & Filhos",
-      netTotal: "CHF 21.885,30",
+      objectDescription: "Revestimento de pavimento industrial",
+      workDescription: ["Preparação do suporte.", "Aplicação do revestimento."],
+      pauschalpreis: "CHF 21'885.30",
     });
-    expect(model.clientFields).toContainEqual({
-      label: "Telefone",
-      value: "078 875 24 37",
-    });
-    expect(model.projectFields).toContainEqual({
-      label: "Descrição",
-      value: "Revestimento de pavimento industrial",
-    });
-    expect(model.scope).toEqual([
-      {
-        title: "Materiais",
-        items: [
-          "Wecryl produto profissional 1 · PG1",
-          "Wecryl produto profissional 2",
-        ],
-      },
-      { title: "Mão de obra", items: ["Execução dos trabalhos previstos"] },
-      { title: "Subempreitadas", items: ["Preparação mecânica"] },
-      { title: "Viatura / equipamento", items: ["Viatura / bomba"] },
-    ]);
-    expect(model.commercialLines).toEqual([
-      { label: "Preço base", value: "CHF 22.485,00" },
-      { label: "Desconto comercial", value: "-2,00%" },
-      { label: "Dedução fixa", value: "-CHF 150,00" },
-    ]);
-
     for (const privateValue of [
-      "Funcionário João da Silva",
+      "material_name_snapshot",
       "Nota técnica interna",
+      "Funcionário João da Silva",
       "Nota privada",
-      "Administração interna",
       "recommended_gross",
       "profit",
       "real_margin",
       "hourly_rate",
       "unit_price",
+      "materials_total",
+      "22.485",
     ]) {
       expect(serialized).not.toContain(privateValue);
     }
   });
 
-  it("omite linhas comerciais e secções vazias", () => {
-    const source = quoteFixture(0);
-    source.quote.commercial_discount = "0";
-    source.quote.fixed_deduction = "0";
-    source.labor = [];
-    source.subcontracts = [];
-    source.equipment = [];
-    source.quote.description = "   ";
-
-    const model = buildCustomerQuotePdfModel(source);
-    expect(model.scope).toEqual([]);
-    expect(model.projectFields.some((field) => field.label === "Descrição")).toBe(false);
-    expect(model.commercialLines).toEqual([
-      { label: "Preço base", value: "CHF 22.485,00" },
-    ]);
-  });
-
-  it.each([
-    ["0788752437", "078 875 24 37"],
-    ["+41788752437", "+41 78 875 24 37"],
-    ["0041 78 875 24 37", "+41 78 875 24 37"],
-    ["+41 (0)78 875 24 37", "+41 78 875 24 37"],
-  ])("formata o telefone suíço %s apenas para apresentação", (phone, expected) => {
-    const source = quoteFixture();
-    source.quote.client_phone_snapshot = phone;
-    const model = buildCustomerQuotePdfModel(source);
-
-    expect(model.clientFields).toContainEqual({
-      label: "Telefone",
-      value: expected,
-    });
-    expect(source.quote.client_phone_snapshot).toBe(phone);
-  });
-
-  it("evita repetir uma variante que já faz parte do nome do material", () => {
-    const source = quoteFixture(1);
-    source.materials[0].material_name_snapshot = "Wecryl 488 PG1";
-    source.materials[0].variant_snapshot = "PG1";
-
-    const model = buildCustomerQuotePdfModel(source);
-    expect(model.scope[0].items).toEqual(["Wecryl 488 PG1"]);
-  });
-
-  it("cria um filename seguro e previsível", () => {
-    expect(quotePdfFilename("CP-2026-0001", "José Müller & Filhos")).toBe(
-      "CP-Peixoto_CP-2026-0001_Jose-Muller-Filhos.pdf",
+  it("usa formatação CHF suíça e nomes de ficheiro seguros", () => {
+    expect(formatSwissAmount("2452")).toBe("2'452.00");
+    expect(formatSwissAmount("-2452.5")).toBe("-2'452.50");
+    expect(internalQuotePdfFilename("CP-2026-0001")).toBe(
+      "CP-Peixoto_Intern_CP-2026-0001.pdf",
     );
-    expect(quotePdfFilename("CP-2026-0002", null)).toBe(
-      "CP-Peixoto_CP-2026-0002_Sem-cliente.pdf",
+    expect(clientQuotePdfFilename("CP-2026-0001", "José Müller & Filhos")).toBe(
+      "CP_Peixoto_Offerte_2026-0001_Jose-Muller-Filhos.pdf",
     );
   });
 
-  it("gera PDFs A4 válidos para os cenários de QA", async () => {
+  it("gera PDFs reais A4: pequeno e normal compactos; grande e notas longas em várias páginas", async () => {
     const logo = await logoBytes();
     const smallSource = quoteFixture(0);
-    smallSource.quote.description = null;
     smallSource.labor = [];
     smallSource.subcontracts = [];
     smallSource.equipment = [];
     smallSource.surcharges = [];
-    const completeSource = quoteFixture(8);
-    const descriptionSource = quoteFixture(3);
-    descriptionSource.quote.description =
-      "Preparação do suporte e aplicação de revestimento contínuo de elevada resistência para a área de produção.";
-    descriptionSource.quote.client_phone_snapshot = "+41788752437";
-    const longSource = quoteFixture(72);
 
-    const scenarios = [
-      ["orcamento-pequeno.pdf", smallSource, 1],
-      ["orcamento-varias-seccoes.pdf", completeSource, 1],
-      ["orcamento-com-descricao.pdf", descriptionSource, 1],
-      ["orcamento-multipagina.pdf", longSource, 2],
+    const normalSource = quoteFixture(3);
+    normalSource.quote.description =
+      "Preparação do suporte e aplicação de revestimento contínuo de elevada resistência para a área de produção.";
+
+    const largeSource = quoteFixture(72);
+    largeSource.labor = Array.from({ length: 18 }, (_, index) => ({
+      ...quoteFixture(0).labor[0],
+      id: `labor-${index}`,
+      position: index,
+      label: `Equipa de aplicação e preparação ${index + 1}`,
+      note: `Nota de produção e deslocação da equipa ${index + 1}`,
+    }));
+
+    const longNotesSource = quoteFixture(1);
+    longNotesSource.materials[0].notes =
+      "Nota interna longa sobre sequência de preparação, condições do suporte, tempos de cura e verificação da superfície. ".repeat(52);
+
+    const internalScenarios = [
+      ["interno-pequeno.pdf", smallSource, 1],
+      ["interno-normal.pdf", normalSource, 1],
+      ["interno-grande.pdf", largeSource, 2],
+      ["interno-notas-longas.pdf", longNotesSource, 2],
     ] as const;
 
-    for (const [filename, source, minimumPages] of scenarios) {
-      const bytes = await renderCustomerQuotePdf(
-        buildCustomerQuotePdfModel(source),
-        logo,
-      );
-      const document = await PDFDocument.load(bytes);
-      expect(bytes.subarray(0, 4).toString()).toBe("37,80,68,70");
-      expect(document.getPages().every((page) => {
-        const { width, height } = page.getSize();
-        return Math.abs(width - 595.28) < 0.1 && Math.abs(height - 841.89) < 0.1;
-      })).toBe(true);
-      expect(document.getPageCount()).toBeGreaterThanOrEqual(minimumPages);
+    const pageCounts: Record<string, number> = {};
+    for (const [filename, source, minimumPages] of internalScenarios) {
+      const bytes = await renderInternalQuotePdf(buildInternalQuotePdfModel(source), logo);
+      const document = await expectA4(bytes);
+      pageCounts[filename] = document.getPageCount();
       await writeQaFixture(filename, bytes);
+      expect(document.getPageCount()).toBeGreaterThanOrEqual(minimumPages);
+      if (minimumPages === 1) expect(document.getPageCount()).toBe(1);
     }
+
+    const customerSource = quoteFixture();
+    const clientModel = buildClientQuotePdfModel(
+      { quote: customerSource.quote },
+      [
+        "Vorbereitung des Untergrundes.",
+        "Diamantschleifen der Betonflächen.",
+        "Gründliches Absaugen und Reinigen der Flächen.",
+        "Auftragen der ersten Grundierungsschicht.",
+      ].join("\n"),
+    );
+    const clientBytes = await renderCustomerQuotePdf(clientModel, logo);
+    const clientDocument = await expectA4(clientBytes);
+    pageCounts["client-offerte.pdf"] = clientDocument.getPageCount();
+    await writeQaFixture("client-offerte.pdf", clientBytes);
+
+    expect(pageCounts["client-offerte.pdf"]).toBe(1);
+    expect(pageCounts["interno-grande.pdf"]).toBeGreaterThan(1);
+    expect(pageCounts["interno-notas-longas.pdf"]).toBeGreaterThan(1);
   });
 });

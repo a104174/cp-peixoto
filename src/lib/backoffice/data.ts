@@ -80,7 +80,7 @@ export type DashboardStats = {
 };
 
 const quoteColumns =
-  "id,quote_number,client_id,client_name_snapshot,client_email_snapshot,client_phone_snapshot,client_address_snapshot,project_location,quote_date,description,area,area_unit,hourly_rate,desired_margin,commercial_discount,fixed_deduction,materials_total,labor_total,subcontracts_total,equipment_total,direct_costs_total,surcharges_total,total_cost,recommended_gross,manual_gross,gross_used,net_value,profit,real_margin,total_hours,created_at,updated_at";
+  "id,quote_number,client_id,client_name_snapshot,client_email_snapshot,client_phone_snapshot,client_address_snapshot,project_location,quote_date,description,area,area_unit,hourly_rate,desired_margin,commercial_discount,fixed_deduction,client_pdf_work_description,materials_total,labor_total,subcontracts_total,equipment_total,direct_costs_total,surcharges_total,total_cost,recommended_gross,manual_gross,gross_used,net_value,profit,real_margin,total_hours,created_at,updated_at";
 const quoteMaterialColumns =
   "id,quote_id,material_id,position,stage,material_name_snapshot,variant_snapshot,package_snapshot,calculation_type,consumption_or_quantity,unit,unit_price,area_factor,cost_total,notes,created_at,updated_at";
 const quoteLaborColumns =
@@ -277,9 +277,29 @@ export type QuoteWithLines = {
   surcharges: QuoteSurchargeRow[];
 };
 
-export async function getQuoteById(id: string): Promise<QuoteWithLines | null> {
+export type ClientQuotePdfSource = {
+  quote: Pick<
+    QuoteRow,
+    | "quote_number"
+    | "quote_date"
+    | "client_name_snapshot"
+    | "description"
+    | "project_location"
+    | "net_value"
+    | "client_pdf_work_description"
+  >;
+};
+
+export type ClientQuotePdfLoadResult =
+  | { authenticated: false; source: null }
+  | { authenticated: true; source: ClientQuotePdfSource | null };
+
+export async function getQuoteById(
+  id: string,
+  authenticatedContext?: NonNullable<Awaited<ReturnType<typeof getAuthenticatedSupabase>>>,
+): Promise<QuoteWithLines | null> {
   return withPerf("quote.load", async (perf) => {
-    const authenticated = await getAuthenticatedSupabase();
+    const authenticated = authenticatedContext ?? await getAuthenticatedSupabase();
     perf.mark("auth", { authenticated: Boolean(authenticated) });
     if (!authenticated) {
       return null;
@@ -339,6 +359,32 @@ export async function getQuoteById(id: string): Promise<QuoteWithLines | null> {
       subcontracts: subcontractResult.data ?? [],
       equipment: equipmentResult.data ?? [],
       surcharges: surchargeResult.data ?? [],
+    };
+  });
+}
+
+export async function getClientQuotePdfSource(
+  id: string,
+  authenticatedContext?: NonNullable<Awaited<ReturnType<typeof getAuthenticatedSupabase>>>,
+): Promise<ClientQuotePdfLoadResult> {
+  return withPerf("quote.client-pdf.load", async (perf) => {
+    const authenticated = authenticatedContext ?? await getAuthenticatedSupabase();
+    perf.mark("auth", { authenticated: Boolean(authenticated) });
+    if (!authenticated) return { authenticated: false, source: null };
+
+    const { data, error } = await authenticated.client
+      .from("quotes")
+      .select(
+        "quote_number,quote_date,client_name_snapshot,description,project_location,net_value,client_pdf_work_description",
+      )
+      .eq("id", id)
+      .maybeSingle();
+    perf.mark("query", { rows: data ? 1 : 0, ok: !error });
+    if (error) loadFailed("load client quote PDF", error);
+
+    return {
+      authenticated: true,
+      source: data ? { quote: data } : null,
     };
   });
 }

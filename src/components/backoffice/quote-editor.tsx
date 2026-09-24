@@ -59,6 +59,7 @@ import { QuotePdfButton } from "./quote-pdf-button";
 
 type QuoteEditorProps = {
   initialDraft: QuoteDraft;
+  initialClientPdfWorkDescription?: string | null;
   clients: ClientSummary[];
   materials: MaterialSummary[];
   successMessage?: string;
@@ -136,6 +137,7 @@ function decimalLessThan(left: string, right: string): boolean {
 
 export function QuoteEditor({
   initialDraft,
+  initialClientPdfWorkDescription = null,
   clients,
   materials,
   successMessage,
@@ -603,9 +605,11 @@ export function QuoteEditor({
           {draft.id && draft.quoteNumber ? (
             <QuotePdfButton
               disabled={isDirty || isPending}
+              initialWorkDescription={initialClientPdfWorkDescription}
               onError={(message) =>
                 setFeedback({ type: "error", message })
               }
+              prefillDescription={draft.description}
               quoteId={draft.id}
             />
           ) : null}

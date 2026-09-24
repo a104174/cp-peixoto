@@ -1,36 +1,19 @@
 import Decimal from "decimal.js";
 
-import {
-  formatMoney,
-  formatNumber,
-  formatPercent,
-} from "../../../domain/quotes/format";
-import type { QuoteWithLines } from "../data";
+import { formatMoney, formatNumber } from "../../../domain/quotes/format";
+import type {
+  ClientQuotePdfSource as ClientPdfSource,
+  QuoteWithLines,
+} from "../data";
 
-export type CustomerPdfField = {
-  label: string;
-  value: string;
-};
-
-export type CustomerPdfScopeSection = {
-  title: string;
-  items: string[];
-};
-
-export type CustomerPdfCommercialLine = {
-  label: string;
-  value: string;
-};
-
-export type CustomerQuotePdfModel = {
+export type ClientQuotePdfModel = {
   quoteNumber: string;
   quoteDate: string;
-  clientName: string | null;
-  clientFields: CustomerPdfField[];
-  projectFields: CustomerPdfField[];
-  scope: CustomerPdfScopeSection[];
-  commercialLines: CustomerPdfCommercialLine[];
-  netTotal: string;
+  clientName: string;
+  objectDescription: string | null;
+  projectLocation: string | null;
+  workDescription: string[];
+  pauschalpreis: string;
 };
 
 function cleanText(value: string | null | undefined): string | null {
@@ -38,208 +21,345 @@ function cleanText(value: string | null | undefined): string | null {
   return normalized || null;
 }
 
-function formatSwissPhone(value: string | null): string | null {
-  if (!value) return null;
-
-  const compact = value.replace(/[\s()./-]/g, "");
-  const digits = compact.replace(/\D/g, "");
-
-  if (digits.length === 10 && digits.startsWith("0")) {
-    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8)}`;
-  }
-
-  let international = digits;
-  if (international.startsWith("0041")) international = international.slice(2);
-  if (international.startsWith("410") && international.length === 12) {
-    international = `41${international.slice(3)}`;
-  }
-  if (international.startsWith("41") && international.length === 11) {
-    const national = international.slice(2);
-    return `+41 ${national.slice(0, 2)} ${national.slice(2, 5)} ${national.slice(5, 7)} ${national.slice(7)}`;
-  }
-
-  return value;
-}
-
-function positiveDecimal(value: string | number | null | undefined): boolean {
-  try {
-    return new Decimal(value ?? 0).gt(0);
-  } catch {
-    return false;
-  }
-}
-
 function formatDate(value: string): string {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   return match ? `${match[3]}.${match[2]}.${match[1]}` : value;
 }
 
-function formatArea(
-  value: string | number | null | undefined,
-  unit: string,
-): string | null {
-  if (value === null || value === undefined || String(value).trim() === "") {
-    return null;
-  }
-
-  try {
-    const formatted = formatNumber(value, 2).replace(/,00$/, "");
-    return `${formatted} ${unit}`.trim();
-  } catch {
-    return null;
-  }
+export function formatSwissAmount(value: string | number | null | undefined): string {
+  const fixed = new Decimal(String(value ?? "0").replace(",", ".")).toFixed(2);
+  const [integer, fraction] = fixed.split(".");
+  return `${integer.replace(/\B(?=(\d{3})+(?!\d))/g, "'")}.${fraction}`;
 }
 
-function splitAddressSnapshot(value: string | null): CustomerPdfField[] {
-  const address = cleanText(value);
-  if (!address) return [];
-
-  const separator = address.lastIndexOf(", ");
-  if (separator === -1) {
-    return [{ label: "Morada", value: address }];
-  }
-
-  const street = cleanText(address.slice(0, separator));
-  const postalLocality = cleanText(address.slice(separator + 2));
-  return [
-    ...(street ? [{ label: "Morada", value: street }] : []),
-    ...(postalLocality
-      ? [{ label: "Código postal / localidade", value: postalLocality }]
-      : []),
-  ];
-}
-
-function uniqueItems(values: Array<string | null>): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-
-  for (const value of values) {
-    if (!value) continue;
-    const key = value.toLocaleLowerCase("pt-PT");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(value);
-  }
-
-  return result;
-}
-
-function materialLabel(
-  name: string,
-  variant: string | null,
-): string | null {
-  const materialName = cleanText(name);
-  const materialVariant = cleanText(variant);
-  if (!materialName) return materialVariant;
-  if (!materialVariant) return materialName;
-
-  const normalizedName = materialName.toLocaleLowerCase("pt-PT");
-  const normalizedVariant = materialVariant.toLocaleLowerCase("pt-PT");
-  const variantAlreadyVisible =
-    normalizedName === normalizedVariant ||
-    normalizedName.endsWith(` ${normalizedVariant}`) ||
-    normalizedName.endsWith(` · ${normalizedVariant}`) ||
-    normalizedName.endsWith(` / ${normalizedVariant}`);
-
-  return variantAlreadyVisible
-    ? materialName
-    : `${materialName} · ${materialVariant}`;
-}
-
-export function buildCustomerQuotePdfModel(
-  source: QuoteWithLines,
-): CustomerQuotePdfModel {
+export function buildClientQuotePdfModel(
+  source: ClientPdfSource,
+  workDescription: string,
+): ClientQuotePdfModel {
   const { quote } = source;
-  const clientEmail = cleanText(quote.client_email_snapshot);
-  const clientPhone = formatSwissPhone(cleanText(quote.client_phone_snapshot));
-  const clientFields: CustomerPdfField[] = [
-    ...splitAddressSnapshot(quote.client_address_snapshot),
-    ...(clientEmail ? [{ label: "Email", value: clientEmail }] : []),
-    ...(clientPhone ? [{ label: "Telefone", value: clientPhone }] : []),
+
+  return {
+    quoteNumber: quote.quote_number,
+    quoteDate: formatDate(quote.quote_date),
+    clientName: cleanText(quote.client_name_snapshot) ?? "",
+    objectDescription: cleanText(quote.description),
+    projectLocation: cleanText(quote.project_location),
+    workDescription: workDescription
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean),
+    pauschalpreis: `CHF ${formatSwissAmount(quote.net_value)}`,
+  };
+}
+
+function safePart(value: string, fallback: string): string {
+  const safe = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9-]+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 72);
+  return safe || fallback;
+}
+
+export function clientQuotePdfFilename(
+  quoteNumber: string,
+  clientName: string,
+): string {
+  const number = safePart(quoteNumber.replace(/^CP-/i, ""), "Offerte");
+  const client = safePart(clientName, "Kunde");
+  return `CP_Peixoto_Offerte_${number}_${client}.pdf`;
+}
+
+export type InternalPdfField = {
+  label: string;
+  value: string;
+};
+
+export type InternalPdfColumn = {
+  label: string;
+  width: number;
+};
+
+export type InternalPdfTable = {
+  title: string;
+  columns: InternalPdfColumn[];
+  rows: string[][];
+  totalLabel?: string;
+  totalValue: string;
+};
+
+export type InternalQuotePdfModel = {
+  quoteNumber: string;
+  quoteDate: string;
+  identification: InternalPdfField[];
+  conditions: InternalPdfField[];
+  tables: InternalPdfTable[];
+  financialSummary: InternalPdfField[];
+};
+
+function valueOrDash(value: string | number | null | undefined): string {
+  return value === null || value === undefined || String(value).trim() === ""
+    ? "—"
+    : String(value);
+}
+
+function formatAmount(value: string | number | null | undefined): string {
+  return formatMoney(value);
+}
+
+function formatQuantity(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || String(value).trim() === "") {
+    return "—";
+  }
+  try {
+    return formatNumber(value, 2).replace(/,00$/, "");
+  } catch {
+    return String(value);
+  }
+}
+
+function formatRate(value: string | number | null | undefined): string {
+  if (value === null || value === undefined || String(value).trim() === "") {
+    return "—";
+  }
+  try {
+    return `${formatNumber(new Decimal(value).mul(100).toString(), 2)}%`;
+  } catch {
+    return String(value);
+  }
+}
+
+function formatArea(value: string | null, unit: string): string {
+  if (!value || value.trim() === "") return "—";
+  return `${formatQuantity(value)} ${unit}`.trim();
+}
+
+function splitAddress(value: string | null): {
+  address: string;
+  postalLocality: string;
+} {
+  if (!value?.trim()) return { address: "—", postalLocality: "—" };
+  const separator = value.lastIndexOf(", ");
+  if (separator < 0) return { address: value.trim(), postalLocality: "—" };
+  return {
+    address: value.slice(0, separator).trim() || "—",
+    postalLocality: value.slice(separator + 2).trim() || "—",
+  };
+}
+
+function calculationTypeLabel(type: "per_m2" | "fixed"): string {
+  return type === "per_m2" ? "Por m²" : "Quantidade fixa";
+}
+
+const surchargeBaseLabels: Record<string, string> = {
+  subcontracts: "Subempreitadas",
+  materials: "Materiais",
+  labor: "Mão de obra",
+  equipment: "Viatura / equipamento",
+  labor_plus_equipment: "Mão de obra + equipamento",
+  direct_costs: "Custos diretos",
+  direct_costs_plus_previous: "Custos diretos + acréscimos anteriores",
+};
+
+export function buildInternalQuotePdfModel(
+  source: QuoteWithLines,
+): InternalQuotePdfModel {
+  const { quote } = source;
+  const address = splitAddress(quote.client_address_snapshot);
+  const area = quote.area ? new Decimal(quote.area) : new Decimal(0);
+  const fixedDeduction = new Decimal(quote.fixed_deduction ?? 0);
+  const totalHours = new Decimal(quote.total_hours ?? 0);
+
+  const identification: InternalPdfField[] = [
+    { label: "Número do orçamento", value: quote.quote_number },
+    { label: "Data", value: formatDate(quote.quote_date) },
+    { label: "Cliente", value: valueOrDash(quote.client_name_snapshot) },
+    { label: "Email", value: valueOrDash(quote.client_email_snapshot) },
+    { label: "Telefone", value: valueOrDash(quote.client_phone_snapshot) },
+    { label: "Morada", value: address.address },
+    { label: "Código postal / localidade", value: address.postalLocality },
+    { label: "Local da obra", value: valueOrDash(quote.project_location) },
+    { label: "Descrição", value: valueOrDash(quote.description) },
+    { label: "Área", value: formatArea(quote.area, quote.area_unit) },
+    { label: "Unidade", value: valueOrDash(quote.area_unit) },
   ];
 
-  const area = formatArea(quote.area, quote.area_unit);
-  const description = cleanText(quote.description);
-  const projectLocation = cleanText(quote.project_location);
-  const projectFields: CustomerPdfField[] = [
-    ...(description ? [{ label: "Descrição", value: description }] : []),
-    ...(projectLocation
-      ? [{ label: "Local da obra", value: projectLocation }]
-      : []),
-    ...(area ? [{ label: "Área", value: area }] : []),
-  ];
-
-  const materials = uniqueItems(
-    source.materials.map((line) =>
-      materialLabel(line.material_name_snapshot, line.variant_snapshot),
-    ),
-  );
-  const subcontracts = uniqueItems(
-    source.subcontracts.map((line) => cleanText(line.description)),
-  );
-  const equipment = uniqueItems(
-    source.equipment.map((line) => cleanText(line.description)),
-  );
-
-  const scope: CustomerPdfScopeSection[] = [
-    ...(materials.length > 0 ? [{ title: "Materiais", items: materials }] : []),
-    ...(source.labor.length > 0
-      ? [{ title: "Mão de obra", items: ["Execução dos trabalhos previstos"] }]
-      : []),
-    ...(subcontracts.length > 0
-      ? [{ title: "Subempreitadas", items: subcontracts }]
-      : []),
-    ...(equipment.length > 0
-      ? [{ title: "Viatura / equipamento", items: equipment }]
+  const conditions: InternalPdfField[] = [
+    { label: "Preço / hora", value: quote.hourly_rate ? formatAmount(quote.hourly_rate) : "—" },
+    { label: "Margem desejada", value: formatRate(quote.desired_margin) },
+    { label: "Desconto comercial", value: formatRate(quote.commercial_discount) },
+    { label: "Dedução fixa", value: quote.fixed_deduction ? formatAmount(quote.fixed_deduction) : "—" },
+    ...(quote.manual_gross
+      ? [{ label: "Preço manual", value: formatAmount(quote.manual_gross) }]
       : []),
   ];
 
-  const commercialLines: CustomerPdfCommercialLine[] = [
-    { label: "Preço base", value: formatMoney(quote.gross_used) },
-    ...(positiveDecimal(quote.commercial_discount)
-      ? [
-          {
-            label: "Desconto comercial",
-            value: `-${formatPercent(quote.commercial_discount)}`,
-          },
-        ]
+  const tables: InternalPdfTable[] = [
+    {
+      title: "Materiais",
+      columns: [
+        { label: "Material", width: 80 },
+        { label: "Etapa", width: 57 },
+        { label: "Tipo", width: 39 },
+        { label: "Consumo / qtd.", width: 57 },
+        { label: "Unidade", width: 40 },
+        { label: "Preço unitário", width: 58 },
+        { label: "Área / fator", width: 49 },
+        { label: "Notas", width: 98 },
+        { label: "Custo", width: 60 },
+      ],
+      rows: source.materials.map((line) => [
+        [line.material_name_snapshot, line.variant_snapshot, line.package_snapshot]
+          .filter((value) => value?.trim())
+          .join(" · "),
+        valueOrDash(line.stage),
+        calculationTypeLabel(line.calculation_type),
+        formatQuantity(line.consumption_or_quantity),
+        valueOrDash(line.unit),
+        formatAmount(line.unit_price),
+        formatQuantity(line.area_factor),
+        valueOrDash(line.notes),
+        formatAmount(line.cost_total),
+      ]),
+      totalLabel: "Total de materiais",
+      totalValue: formatAmount(quote.materials_total),
+    },
+    {
+      title: "Mão de obra",
+      columns: [
+        { label: "Descrição", width: 83 },
+        { label: "Pessoas", width: 43 },
+        { label: "Horas trabalho / pessoa", width: 63 },
+        { label: "Horas deslocação / pessoa", width: 63 },
+        { label: "Nota", width: 145 },
+        { label: "Horas totais", width: 59 },
+        { label: "Custo", width: 85 },
+      ],
+      rows: source.labor.map((line) => [
+        valueOrDash(line.label),
+        formatQuantity(line.people),
+        formatQuantity(line.work_hours_per_person),
+        formatQuantity(line.travel_hours_per_person),
+        valueOrDash(line.note),
+        formatQuantity(line.total_hours),
+        formatAmount(line.cost_total),
+      ]),
+      totalLabel: `Total mão de obra · ${formatQuantity(quote.total_hours)} h`,
+      totalValue: formatAmount(quote.labor_total),
+    },
+    {
+      title: "Subempreitadas",
+      columns: [
+        { label: "Descrição", width: 145 },
+        { label: "Quantidade", width: 68 },
+        { label: "Unidade", width: 53 },
+        { label: "Preço unitário", width: 78 },
+        { label: "Nota", width: 119 },
+        { label: "Total", width: 78 },
+      ],
+      rows: source.subcontracts.map((line) => [
+        valueOrDash(line.description),
+        formatQuantity(line.quantity),
+        valueOrDash(line.unit),
+        formatAmount(line.unit_price),
+        valueOrDash(line.note),
+        formatAmount(line.total_amount),
+      ]),
+      totalLabel: "Total subempreitadas",
+      totalValue: formatAmount(quote.subcontracts_total),
+    },
+    {
+      title: "Viatura / equipamento",
+      columns: [
+        { label: "Descrição", width: 145 },
+        { label: "Quantidade", width: 68 },
+        { label: "Unidade", width: 53 },
+        { label: "Preço unitário", width: 78 },
+        { label: "Nota", width: 119 },
+        { label: "Total", width: 78 },
+      ],
+      rows: source.equipment.map((line) => [
+        valueOrDash(line.description),
+        formatQuantity(line.quantity),
+        valueOrDash(line.unit),
+        formatAmount(line.unit_price),
+        valueOrDash(line.note),
+        formatAmount(line.total_amount),
+      ]),
+      totalLabel: "Total viatura / equipamento",
+      totalValue: formatAmount(quote.equipment_total),
+    },
+    {
+      title: "Acréscimos · por ordem de aplicação",
+      columns: [
+        { label: "#", width: 24 },
+        { label: "Nome", width: 115 },
+        { label: "Base", width: 143 },
+        { label: "Taxa", width: 60 },
+        { label: "Base calculada", width: 112 },
+        { label: "Valor", width: 87 },
+      ],
+      rows: source.surcharges.map((line, index) => [
+        String(index + 1),
+        valueOrDash(line.name),
+        surchargeBaseLabels[line.base_type] ?? line.base_type,
+        formatRate(line.rate),
+        formatAmount(line.base_amount),
+        formatAmount(line.amount),
+      ]),
+      totalLabel: "Total de acréscimos",
+      totalValue: formatAmount(quote.surcharges_total),
+    },
+  ];
+
+  const financialSummary: InternalPdfField[] = [
+    { label: "Materiais", value: formatAmount(quote.materials_total) },
+    { label: "Mão de obra", value: formatAmount(quote.labor_total) },
+    { label: "Subempreitadas", value: formatAmount(quote.subcontracts_total) },
+    { label: "Equipamento", value: formatAmount(quote.equipment_total) },
+    { label: "Custos diretos", value: formatAmount(quote.direct_costs_total) },
+    { label: "Acréscimos", value: formatAmount(quote.surcharges_total) },
+    { label: "Custo total", value: formatAmount(quote.total_cost) },
+    { label: "Preço recomendado", value: formatAmount(quote.recommended_gross) },
+    ...(quote.manual_gross
+      ? [{ label: "Preço manual", value: formatAmount(quote.manual_gross) }]
       : []),
-    ...(positiveDecimal(quote.fixed_deduction)
-      ? [
-          {
-            label: "Dedução fixa",
-            value: `-${formatMoney(quote.fixed_deduction)}`,
-          },
-        ]
+    { label: "Preço utilizado", value: formatAmount(quote.gross_used) },
+    { label: "Valor líquido", value: formatAmount(quote.net_value) },
+    { label: "Lucro", value: formatAmount(quote.profit) },
+    { label: "Margem real", value: formatRate(quote.real_margin) },
+    { label: "Horas totais", value: `${formatQuantity(quote.total_hours)} h` },
+    {
+      label: "Valor líquido / m²",
+      value: area.isZero() ? "—" : formatAmount(new Decimal(quote.net_value).div(area).toString()),
+    },
+    ...(fixedDeduction.gt(0) && !area.isZero()
+      ? [{
+          label: "Dedução / m²",
+          value: formatAmount(fixedDeduction.div(area).toString()),
+        }]
       : []),
+    {
+      label: "Valor líquido / hora",
+      value: totalHours.isZero()
+        ? "—"
+        : formatAmount(new Decimal(quote.net_value).div(totalHours).toString()),
+    },
   ];
 
   return {
     quoteNumber: quote.quote_number,
     quoteDate: formatDate(quote.quote_date),
-    clientName: cleanText(quote.client_name_snapshot),
-    clientFields,
-    projectFields,
-    scope,
-    commercialLines,
-    netTotal: formatMoney(quote.net_value),
+    identification,
+    conditions,
+    tables,
+    financialSummary,
   };
 }
 
-export function quotePdfFilename(
-  quoteNumber: string,
-  clientName: string | null,
-): string {
-  const safePart = (value: string) =>
-    value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9-]+/g, "-")
-      .replace(/-{2,}/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 72);
-
-  const quote = safePart(quoteNumber) || "Orcamento";
-  const client = clientName ? safePart(clientName) : "Sem-cliente";
-  return `CP-Peixoto_${quote}_${client || "Sem-cliente"}.pdf`;
+export function internalQuotePdfFilename(quoteNumber: string): string {
+  const safeNumber = safePart(quoteNumber, "Orcamento");
+  return `CP-Peixoto_Intern_${safeNumber}.pdf`;
 }

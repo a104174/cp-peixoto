@@ -28,6 +28,7 @@ export default async function EditQuotePage({
     <QuoteEditor
       clients={clients}
       initialDraft={mapQuoteToDraft(quote)}
+      initialClientPdfWorkDescription={quote.quote.client_pdf_work_description}
       materials={materials}
       successMessage={query.saved === "created" ? `Orçamento ${quote.quote.quote_number} criado com sucesso.` : undefined}
     />

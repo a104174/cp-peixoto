@@ -1,10 +1,10 @@
 import { getQuoteById } from "@/lib/backoffice/data";
 import { loadQuotePdfLogo } from "@/lib/backoffice/pdf/assets";
 import {
-  buildCustomerQuotePdfModel,
-  quotePdfFilename,
+  buildInternalQuotePdfModel,
+  internalQuotePdfFilename,
 } from "@/lib/backoffice/pdf/model";
-import { renderCustomerQuotePdf } from "@/lib/backoffice/pdf/render";
+import { renderInternalQuotePdf } from "@/lib/backoffice/pdf/internal-render";
 import { getAuthenticatedSupabase } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -23,9 +23,11 @@ export async function GET(
   }
 
   const { id } = await params;
-
   try {
-    const quote = await getQuoteById(id);
+    const [quote, logo] = await Promise.all([
+      getQuoteById(id, authenticated),
+      loadQuotePdfLogo(),
+    ]);
     if (!quote) {
       return Response.json(
         { message: "Orçamento não encontrado." },
@@ -33,10 +35,9 @@ export async function GET(
       );
     }
 
-    const model = buildCustomerQuotePdfModel(quote);
-    const logo = await loadQuotePdfLogo();
-    const pdf = await renderCustomerQuotePdf(model, logo);
-    const filename = quotePdfFilename(model.quoteNumber, model.clientName);
+    const model = buildInternalQuotePdfModel(quote);
+    const pdf = await renderInternalQuotePdf(model, logo);
+    const filename = internalQuotePdfFilename(model.quoteNumber);
 
     return new Response(Buffer.from(pdf), {
       headers: {
@@ -47,12 +48,12 @@ export async function GET(
       },
     });
   } catch (error) {
-    console.error("[backoffice] generate quote PDF", {
+    console.error("[backoffice] generate internal quote PDF", {
       quoteId: id,
       error: error instanceof Error ? error.message : "Unknown error",
     });
     return Response.json(
-      { message: "Não foi possível gerar o PDF. Tente novamente." },
+      { message: "Não foi possível gerar o PDF interno. Tente novamente." },
       { status: 500 },
     );
   }

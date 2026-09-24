@@ -1893,6 +1893,14 @@ textarea.bo-input {
   max-height: min(90vh, 760px);
   overflow-y: auto;
 }
+.bo-client-pdf-dialog {
+  width: min(100%, 700px);
+}
+.bo-pdf-work-description {
+  min-height: 210px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
 .bo-dialog-form > .bo-eyebrow {
   margin: 0;
 }

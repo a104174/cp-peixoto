@@ -71,6 +71,7 @@ export type QuoteRow = {
   desired_margin: string | null;
   commercial_discount: string | null;
   fixed_deduction: string | null;
+  client_pdf_work_description: string | null;
   materials_total: string;
   labor_total: string;
   subcontracts_total: string;
@@ -223,6 +224,7 @@ export type QuoteInsert = {
   desired_margin?: string | null;
   commercial_discount?: string | null;
   fixed_deduction?: string | null;
+  client_pdf_work_description?: string | null;
   materials_total?: string;
   labor_total?: string;
   subcontracts_total?: string;
@@ -356,6 +358,10 @@ export type Database = {
       save_quote: {
         Args: { payload: Json };
         Returns: QuoteRow;
+      };
+      save_client_pdf_work_description: {
+        Args: { target_quote_id: string; work_description: string };
+        Returns: boolean;
       };
     };
     Enums: {
