@@ -431,33 +431,131 @@
 }
 .bo-quote-internal-notes {
   display: grid;
-  grid-template-columns: minmax(170px, 0.3fr) minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
+  width: min(100%, 960px);
+  gap: 11px;
   border: 1px solid var(--bo-border);
   border-left: 3px solid var(--bo-accent);
-  border-radius: var(--bo-radius-sm);
+  border-radius: var(--bo-radius-md);
   background: var(--bo-surface);
-  padding: 11px 14px;
+  padding: 14px 16px 13px;
+  transition:
+    border-color 160ms var(--bo-ease),
+    background-color 160ms var(--bo-ease),
+    box-shadow 160ms var(--bo-ease);
+}
+.bo-quote-internal-notes:focus-within {
+  border-color: var(--bo-accent);
+  box-shadow: 0 0 0 3px rgb(185 145 80 / 9%);
+}
+.bo-quote-internal-notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.bo-quote-internal-notes-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+.bo-quote-internal-notes-icon {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 32px;
+  place-items: center;
+  border: 1px solid #e6dcc8;
+  border-radius: 9px;
+  background: var(--bo-accent-soft);
+  color: var(--bo-accent-strong);
 }
 .bo-quote-internal-notes-copy {
   display: grid;
-  gap: 4px;
+  min-width: 0;
+  gap: 2px;
 }
 .bo-quote-internal-notes-copy label {
   color: var(--bo-text);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 720;
 }
 .bo-quote-internal-notes-copy p {
   margin: 0;
   color: var(--bo-text-muted);
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1.45;
 }
+.bo-quote-internal-notes-status {
+  display: inline-flex;
+  min-height: 26px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--bo-surface-muted);
+  color: var(--bo-text-muted);
+  padding: 4px 9px;
+  font-size: 10px;
+  font-weight: 680;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    border-color 160ms var(--bo-ease),
+    background-color 160ms var(--bo-ease),
+    color 160ms var(--bo-ease);
+}
+.bo-quote-internal-notes-status::before {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+.bo-quote-internal-notes-status.is-saved {
+  border-color: #d4e5d8;
+  background: var(--bo-success-soft);
+  color: var(--bo-success);
+}
+.bo-quote-internal-notes-status.is-dirty,
+.bo-quote-internal-notes-status.is-pending {
+  border-color: #ead8b7;
+  background: var(--bo-warning-soft);
+  color: var(--bo-accent-strong);
+}
+.bo-quote-internal-notes-status.is-error {
+  border-color: #efd0cc;
+  background: var(--bo-danger-soft);
+  color: var(--bo-danger);
+}
+.bo-quote-internal-notes-status.is-empty {
+  border-color: var(--bo-border);
+  background: transparent;
+  color: var(--bo-text-subtle);
+}
 .bo-quote-internal-notes textarea {
-  min-height: 58px;
+  min-height: 82px;
+  max-height: 260px;
+  overflow-y: auto;
+  border-color: var(--bo-border-strong);
+  background: #fff;
+  padding: 10px 12px;
   resize: vertical;
+  line-height: 1.55;
+  transition:
+    border-color 140ms var(--bo-ease),
+    box-shadow 140ms var(--bo-ease),
+    background-color 140ms var(--bo-ease);
+}
+.bo-quote-internal-notes textarea::placeholder {
+  color: #92958f;
+}
+.bo-quote-internal-notes textarea:focus {
+  border-color: var(--bo-accent);
+  background: #fffefb;
+  box-shadow: 0 0 0 2px rgb(185 145 80 / 12%);
 }
 .bo-stat-grid {
   display: grid;
@@ -2234,10 +2332,20 @@ textarea.bo-input {
     font-size: 30px;
   }
   .bo-quote-internal-notes {
-    grid-template-columns: 1fr;
-    align-items: stretch;
-    gap: 8px;
-    padding: 11px 12px;
+    width: 100%;
+    gap: 10px;
+    padding: 12px;
+  }
+  .bo-quote-internal-notes-header {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px 10px;
+  }
+  .bo-quote-internal-notes-heading {
+    flex: 1 1 230px;
+  }
+  .bo-quote-internal-notes-status {
+    margin-left: 42px;
   }
   .bo-page-heading > .bo-button,
   .bo-heading-actions {

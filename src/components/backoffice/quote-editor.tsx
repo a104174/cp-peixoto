@@ -170,10 +170,20 @@ export function QuoteEditor({
   const [savedSnapshot, setSavedSnapshot] = useState(() => serializeQuoteDraft(initialDraft));
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<{ title: string; description: string; remove: () => void } | null>(null);
+  const [isSavingQuote, setIsSavingQuote] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const calculation = useMemo(() => calculateQuote(draft), [draft]);
   const isDirty = quoteDraftHasUnsavedChanges(draft, savedSnapshot);
+  const internalNotesStatus = isSavingQuote
+    ? { label: "A guardar…", tone: "pending" }
+    : isDirty
+      ? { label: "Alterações por guardar", tone: "dirty" }
+      : feedback?.type === "error"
+        ? { label: "Não guardado", tone: "error" }
+        : draft.internalNotes.trim()
+          ? { label: "Guardado", tone: "saved" }
+          : { label: "Sem notas", tone: "empty" };
 
   useEffect(() => {
     if (!isDirty) return;
@@ -522,36 +532,46 @@ export function QuoteEditor({
       return;
     }
     setFieldErrors({});
+    setIsSavingQuote(true);
     startTransition(async () => {
-      const result = await saveQuoteAction(draft);
-      if (!result.success) {
-        if (result.code === "AUTH_REQUIRED") {
-          router.push("/backoffice/login?reason=session-expired");
+      try {
+        const result = await saveQuoteAction(draft);
+        if (!result.success) {
+          if (result.code === "AUTH_REQUIRED") {
+            router.push("/backoffice/login?reason=session-expired");
+            return;
+          }
+          setFieldErrors(result.fieldErrors ?? {});
+          setFeedback({ type: "error", message: result.message });
           return;
         }
-        setFieldErrors(result.fieldErrors ?? {});
-        setFeedback({ type: "error", message: result.message });
-        return;
-      }
 
-      setFeedback({ type: "success", message: result.message ?? "Alterações guardadas." });
-      if (result.quoteId) {
-        const savedDraft = {
-          ...draft,
-          id: result.quoteId,
-          quoteNumber: result.quoteNumber ?? draft.quoteNumber,
-        };
-        setDraft((current) => ({
-          ...current,
-          id: result.quoteId ?? current.id,
-          quoteNumber: result.quoteNumber ?? current.quoteNumber,
-        }));
-        setSavedSnapshot(serializeQuoteDraft(savedDraft));
-        if (!initialDraft.id) {
-          router.replace(`/backoffice/orcamentos/${result.quoteId}?saved=created`);
-        } else {
-          router.refresh();
+        setFeedback({ type: "success", message: result.message ?? "Alterações guardadas." });
+        if (result.quoteId) {
+          const savedDraft = {
+            ...draft,
+            id: result.quoteId,
+            quoteNumber: result.quoteNumber ?? draft.quoteNumber,
+          };
+          setDraft((current) => ({
+            ...current,
+            id: result.quoteId ?? current.id,
+            quoteNumber: result.quoteNumber ?? current.quoteNumber,
+          }));
+          setSavedSnapshot(serializeQuoteDraft(savedDraft));
+          if (!initialDraft.id) {
+            router.replace(`/backoffice/orcamentos/${result.quoteId}?saved=created`);
+          } else {
+            router.refresh();
+          }
         }
+      } catch {
+        setFeedback({
+          type: "error",
+          message: "Não foi possível guardar o orçamento. Tente novamente.",
+        });
+      } finally {
+        setIsSavingQuote(false);
       }
     });
   }
@@ -624,25 +644,36 @@ export function QuoteEditor({
         </div>
       </div>
 
-      <section
-        aria-labelledby="quote-internal-notes-label"
-        className="bo-quote-internal-notes"
-      >
-        <div className="bo-quote-internal-notes-copy">
-          <label htmlFor="quote-internal-notes" id="quote-internal-notes-label">
-            Notas internas
-          </label>
-          <p id="quote-internal-notes-help">
-            Visível apenas no backoffice. Não aparece nos PDFs.
-          </p>
+      <section aria-labelledby="quote-internal-notes-label" className="bo-quote-internal-notes">
+        <div className="bo-quote-internal-notes-header">
+          <div className="bo-quote-internal-notes-heading">
+            <span aria-hidden="true" className="bo-quote-internal-notes-icon">
+              <BackofficeIcon name="quotes" size={17} />
+            </span>
+            <div className="bo-quote-internal-notes-copy">
+              <label htmlFor="quote-internal-notes" id="quote-internal-notes-label">
+                Notas internas
+              </label>
+              <p id="quote-internal-notes-help">
+                Apenas visível no backoffice. Não aparece nos PDFs.
+              </p>
+            </div>
+          </div>
+          <span
+            aria-atomic="true"
+            aria-live="polite"
+            className={`bo-quote-internal-notes-status is-${internalNotesStatus.tone}`}
+          >
+            {internalNotesStatus.label}
+          </span>
         </div>
         <textarea
           aria-describedby="quote-internal-notes-help"
           className="bo-input bo-textarea"
           id="quote-internal-notes"
           onChange={(event) => updateHeader("internalNotes", event.target.value)}
-          placeholder="Ex.: obra concluída, pagamento pendente, aguardar resposta..."
-          rows={2}
+          placeholder="Ex.: aguardar resposta, obra concluída, pagamento pendente..."
+          rows={3}
           value={draft.internalNotes}
         />
       </section>
