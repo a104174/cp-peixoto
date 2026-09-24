@@ -1,10 +1,46 @@
 import Decimal from "decimal.js";
 
-import { formatMoney, formatNumber } from "../../../domain/quotes/format";
+import { formatMoney, formatNumber, formatPercent } from "../../../domain/quotes/format";
 import type {
-  ClientQuotePdfSource as ClientPdfSource,
-  QuoteWithLines,
-} from "../data";
+  QuoteMaterialRow,
+  QuoteRow,
+  QuoteLaborRow,
+  QuoteSubcontractRow,
+  QuoteSurchargeRow,
+} from "../../supabase/database.types";
+import { asText } from "./shared";
+
+type PdfRuntimeValue<T> = T extends string | null | undefined
+  ? T | number | null | undefined
+  : T;
+
+type PdfRuntimeRow<T> = {
+  [Key in keyof T]: PdfRuntimeValue<T[Key]>;
+};
+
+export type PdfRuntimeQuoteSource = {
+  quote: PdfRuntimeRow<QuoteRow>;
+  materials: PdfRuntimeRow<QuoteMaterialRow>[];
+  labor: PdfRuntimeRow<QuoteLaborRow>[];
+  subcontracts: PdfRuntimeRow<QuoteSubcontractRow>[];
+  equipment: PdfRuntimeRow<QuoteSubcontractRow>[];
+  surcharges: PdfRuntimeRow<QuoteSurchargeRow>[];
+};
+
+export type PdfRuntimeClientSource = {
+  quote: PdfRuntimeRow<
+    Pick<
+      QuoteRow,
+      | "quote_number"
+      | "quote_date"
+      | "client_name_snapshot"
+      | "description"
+      | "project_location"
+      | "net_value"
+      | "client_pdf_work_description"
+    >
+  >;
+};
 
 export type ClientQuotePdfModel = {
   quoteNumber: string;
@@ -16,35 +52,37 @@ export type ClientQuotePdfModel = {
   pauschalpreis: string;
 };
 
-function cleanText(value: string | null | undefined): string | null {
-  const normalized = value?.replace(/\s+/g, " ").trim();
+function cleanText(value: unknown): string | null {
+  const normalized = asText(value).replace(/\s+/g, " ").trim();
   return normalized || null;
 }
 
-function formatDate(value: string): string {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  return match ? `${match[3]}.${match[2]}.${match[1]}` : value;
+function formatDate(value: unknown): string {
+  const text = asText(value);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  return match ? `${match[3]}.${match[2]}.${match[1]}` : text;
 }
 
 export function formatSwissAmount(value: string | number | null | undefined): string {
-  const fixed = new Decimal(String(value ?? "0").replace(",", ".")).toFixed(2);
+  const decimal = decimalValue(value);
+  const fixed = decimal.toFixed(2);
   const [integer, fraction] = fixed.split(".");
   return `${integer.replace(/\B(?=(\d{3})+(?!\d))/g, "'")}.${fraction}`;
 }
 
 export function buildClientQuotePdfModel(
-  source: ClientPdfSource,
-  workDescription: string,
+  source: PdfRuntimeClientSource,
+  workDescription: unknown,
 ): ClientQuotePdfModel {
   const { quote } = source;
 
   return {
-    quoteNumber: quote.quote_number,
+    quoteNumber: asText(quote.quote_number),
     quoteDate: formatDate(quote.quote_date),
     clientName: cleanText(quote.client_name_snapshot) ?? "",
     objectDescription: cleanText(quote.description),
     projectLocation: cleanText(quote.project_location),
-    workDescription: workDescription
+    workDescription: asText(workDescription)
       .split(/\r?\n/)
       .map((line) => line.trim())
       .filter(Boolean),
@@ -52,8 +90,8 @@ export function buildClientQuotePdfModel(
   };
 }
 
-function safePart(value: string, fallback: string): string {
-  const safe = value
+function safePart(value: unknown, fallback: string): string {
+  const safe = asText(value)
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^a-zA-Z0-9-]+/g, "-")
@@ -64,10 +102,10 @@ function safePart(value: string, fallback: string): string {
 }
 
 export function clientQuotePdfFilename(
-  quoteNumber: string,
-  clientName: string,
+  quoteNumber: unknown,
+  clientName: unknown,
 ): string {
-  const number = safePart(quoteNumber.replace(/^CP-/i, ""), "Offerte");
+  const number = safePart(asText(quoteNumber).replace(/^CP-/i, ""), "Offerte");
   const client = safePart(clientName, "Kunde");
   return `CP_Peixoto_Offerte_${number}_${client}.pdf`;
 }
@@ -99,58 +137,86 @@ export type InternalQuotePdfModel = {
   financialSummary: InternalPdfField[];
 };
 
-function valueOrDash(value: string | number | null | undefined): string {
-  return value === null || value === undefined || String(value).trim() === ""
-    ? "—"
-    : String(value);
+function valueOrDash(value: unknown): string {
+  const text = asText(value);
+  return text.trim() === "" ? "—" : text;
 }
 
-function formatAmount(value: string | number | null | undefined): string {
-  return formatMoney(value);
+function numericValue(value: unknown): string | number | null | undefined {
+  if (typeof value === "string" || typeof value === "number") return value;
+  if (value === null || value === undefined) return value;
+  return undefined;
 }
 
-function formatQuantity(value: string | number | null | undefined): string {
-  if (value === null || value === undefined || String(value).trim() === "") {
+function formatAmount(value: unknown): string {
+  const numeric = numericValue(value);
+  if (typeof numeric === "string" && numeric.trim() === "") return "—";
+  return formatMoney(numeric);
+}
+
+function formatQuantity(value: unknown): string {
+  const numeric = numericValue(value);
+  if (numeric === null || numeric === undefined || asText(numeric).trim() === "") {
     return "—";
   }
   try {
-    return formatNumber(value, 2).replace(/,00$/, "");
+    return formatNumber(numeric, 2).replace(/,00$/, "");
   } catch {
-    return String(value);
+    return asText(numeric);
   }
 }
 
-function formatRate(value: string | number | null | undefined): string {
-  if (value === null || value === undefined || String(value).trim() === "") {
+function formatRate(value: unknown): string {
+  const numeric = numericValue(value);
+  if (numeric === null || numeric === undefined || asText(numeric).trim() === "") {
     return "—";
   }
   try {
-    return `${formatNumber(new Decimal(value).mul(100).toString(), 2)}%`;
+    return formatPercent(numeric);
   } catch {
-    return String(value);
+    return asText(numeric);
   }
 }
 
-function formatArea(value: string | null, unit: string): string {
-  if (!value || value.trim() === "") return "—";
-  return `${formatQuantity(value)} ${unit}`.trim();
+function formatArea(value: unknown, unit: unknown): string {
+  if (asText(value).trim() === "") return "—";
+  const unitText = asText(unit).trim();
+  return [formatQuantity(value), unitText].filter(Boolean).join(" ");
 }
 
-function splitAddress(value: string | null): {
+function splitAddress(value: unknown): {
   address: string;
   postalLocality: string;
 } {
-  if (!value?.trim()) return { address: "—", postalLocality: "—" };
-  const separator = value.lastIndexOf(", ");
-  if (separator < 0) return { address: value.trim(), postalLocality: "—" };
+  const text = asText(value).trim();
+  if (!text) return { address: "—", postalLocality: "—" };
+  const separator = text.lastIndexOf(", ");
+  if (separator < 0) return { address: text, postalLocality: "—" };
   return {
-    address: value.slice(0, separator).trim() || "—",
-    postalLocality: value.slice(separator + 2).trim() || "—",
+    address: text.slice(0, separator).trim() || "—",
+    postalLocality: text.slice(separator + 2).trim() || "—",
   };
 }
 
-function calculationTypeLabel(type: "per_m2" | "fixed"): string {
-  return type === "per_m2" ? "Por m²" : "Quantidade fixa";
+function calculationTypeLabel(type: unknown): string {
+  return asText(type) === "per_m2" ? "Por m²" : "Quantidade fixa";
+}
+
+function decimalValue(value: unknown): Decimal {
+  const input = typeof value === "number"
+    ? value
+    : asText(value).trim().replace(",", ".");
+  if (input === "") return new Decimal(0);
+  try {
+    const decimal = new Decimal(input);
+    return decimal.isFinite() ? decimal : new Decimal(0);
+  } catch {
+    return new Decimal(0);
+  }
+}
+
+function hasValue(value: unknown): boolean {
+  return asText(value).trim() !== "";
 }
 
 const surchargeBaseLabels: Record<string, string> = {
@@ -164,16 +230,16 @@ const surchargeBaseLabels: Record<string, string> = {
 };
 
 export function buildInternalQuotePdfModel(
-  source: QuoteWithLines,
+  source: PdfRuntimeQuoteSource,
 ): InternalQuotePdfModel {
   const { quote } = source;
   const address = splitAddress(quote.client_address_snapshot);
-  const area = quote.area ? new Decimal(quote.area) : new Decimal(0);
-  const fixedDeduction = new Decimal(quote.fixed_deduction ?? 0);
-  const totalHours = new Decimal(quote.total_hours ?? 0);
+  const area = decimalValue(quote.area);
+  const fixedDeduction = decimalValue(quote.fixed_deduction);
+  const totalHours = decimalValue(quote.total_hours);
 
   const identification: InternalPdfField[] = [
-    { label: "Número do orçamento", value: quote.quote_number },
+    { label: "Número do orçamento", value: valueOrDash(quote.quote_number) },
     { label: "Data", value: formatDate(quote.quote_date) },
     { label: "Cliente", value: valueOrDash(quote.client_name_snapshot) },
     { label: "Email", value: valueOrDash(quote.client_email_snapshot) },
@@ -187,11 +253,11 @@ export function buildInternalQuotePdfModel(
   ];
 
   const conditions: InternalPdfField[] = [
-    { label: "Preço / hora", value: quote.hourly_rate ? formatAmount(quote.hourly_rate) : "—" },
+    { label: "Preço / hora", value: hasValue(quote.hourly_rate) ? formatAmount(quote.hourly_rate) : "—" },
     { label: "Margem desejada", value: formatRate(quote.desired_margin) },
     { label: "Desconto comercial", value: formatRate(quote.commercial_discount) },
-    { label: "Dedução fixa", value: quote.fixed_deduction ? formatAmount(quote.fixed_deduction) : "—" },
-    ...(quote.manual_gross
+    { label: "Dedução fixa", value: hasValue(quote.fixed_deduction) ? formatAmount(quote.fixed_deduction) : "—" },
+    ...(hasValue(quote.manual_gross)
       ? [{ label: "Preço manual", value: formatAmount(quote.manual_gross) }]
       : []),
   ];
@@ -212,7 +278,8 @@ export function buildInternalQuotePdfModel(
       ],
       rows: source.materials.map((line) => [
         [line.material_name_snapshot, line.variant_snapshot, line.package_snapshot]
-          .filter((value) => value?.trim())
+          .map(cleanText)
+          .filter((value): value is string => value !== null)
           .join(" · "),
         valueOrDash(line.stage),
         calculationTypeLabel(line.calculation_type),
@@ -304,7 +371,7 @@ export function buildInternalQuotePdfModel(
       rows: source.surcharges.map((line, index) => [
         String(index + 1),
         valueOrDash(line.name),
-        surchargeBaseLabels[line.base_type] ?? line.base_type,
+        surchargeBaseLabels[asText(line.base_type)] ?? valueOrDash(line.base_type),
         formatRate(line.rate),
         formatAmount(line.base_amount),
         formatAmount(line.amount),
@@ -323,7 +390,7 @@ export function buildInternalQuotePdfModel(
     { label: "Acréscimos", value: formatAmount(quote.surcharges_total) },
     { label: "Custo total", value: formatAmount(quote.total_cost) },
     { label: "Preço recomendado", value: formatAmount(quote.recommended_gross) },
-    ...(quote.manual_gross
+    ...(hasValue(quote.manual_gross)
       ? [{ label: "Preço manual", value: formatAmount(quote.manual_gross) }]
       : []),
     { label: "Preço utilizado", value: formatAmount(quote.gross_used) },
@@ -333,7 +400,7 @@ export function buildInternalQuotePdfModel(
     { label: "Horas totais", value: `${formatQuantity(quote.total_hours)} h` },
     {
       label: "Valor líquido / m²",
-      value: area.isZero() ? "—" : formatAmount(new Decimal(quote.net_value).div(area).toString()),
+      value: area.isZero() ? "—" : formatAmount(decimalValue(quote.net_value).div(area).toString()),
     },
     ...(fixedDeduction.gt(0) && !area.isZero()
       ? [{
@@ -345,12 +412,12 @@ export function buildInternalQuotePdfModel(
       label: "Valor líquido / hora",
       value: totalHours.isZero()
         ? "—"
-        : formatAmount(new Decimal(quote.net_value).div(totalHours).toString()),
+        : formatAmount(decimalValue(quote.net_value).div(totalHours).toString()),
     },
   ];
 
   return {
-    quoteNumber: quote.quote_number,
+    quoteNumber: asText(quote.quote_number),
     quoteDate: formatDate(quote.quote_date),
     identification,
     conditions,
@@ -359,7 +426,7 @@ export function buildInternalQuotePdfModel(
   };
 }
 
-export function internalQuotePdfFilename(quoteNumber: string): string {
+export function internalQuotePdfFilename(quoteNumber: unknown): string {
   const safeNumber = safePart(quoteNumber, "Orcamento");
   return `CP-Peixoto_Intern_${safeNumber}.pdf`;
 }

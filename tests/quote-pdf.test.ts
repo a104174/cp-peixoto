@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 import { describe, expect, it } from "vitest";
 
 import type { QuoteWithLines } from "../src/lib/backoffice/data";
@@ -11,9 +11,16 @@ import {
   clientQuotePdfFilename,
   formatSwissAmount,
   internalQuotePdfFilename,
+  type PdfRuntimeClientSource,
+  type PdfRuntimeQuoteSource,
 } from "../src/lib/backoffice/pdf/model";
 import { renderInternalQuotePdf } from "../src/lib/backoffice/pdf/internal-render";
 import { renderCustomerQuotePdf } from "../src/lib/backoffice/pdf/render";
+import {
+  asText,
+  safeFontText,
+  wrapPdfText,
+} from "../src/lib/backoffice/pdf/shared";
 
 function quoteFixture(materialCount = 2): QuoteWithLines {
   const timestamp = "2026-09-18T10:00:00.000Z";
@@ -136,6 +143,84 @@ function quoteFixture(materialCount = 2): QuoteWithLines {
   };
 }
 
+function quoteFixtureWithRuntimeNumbers(): PdfRuntimeQuoteSource {
+  const source = quoteFixture(1);
+  return {
+    ...source,
+    quote: {
+      ...source.quote,
+      area: 80,
+      hourly_rate: 52,
+      desired_margin: 0.7,
+      commercial_discount: 0,
+      fixed_deduction: null,
+      manual_gross: 0,
+      materials_total: 10.69,
+      labor_total: 52,
+      subcontracts_total: undefined,
+      equipment_total: 0,
+      direct_costs_total: 62.69,
+      surcharges_total: 1.07,
+      total_cost: 63.76,
+      recommended_gross: 100,
+      gross_used: 100,
+      net_value: 80,
+      profit: 16.24,
+      real_margin: 0.203,
+      total_hours: 2.9,
+      client_email_snapshot: undefined,
+      project_location: null,
+    },
+    materials: source.materials.map((line) => ({
+      ...line,
+      material_name_snapshot: 80,
+      variant_snapshot: 0.7,
+      package_snapshot: undefined,
+      stage: null,
+      consumption_or_quantity: "0.7",
+      unit_price: 52,
+      area_factor: "80",
+      cost_total: 10.69,
+      notes: null,
+    })),
+    labor: source.labor.map((line) => ({
+      ...line,
+      label: "Aplicação do revestimento",
+      people: 1,
+      work_hours_per_person: 0.7,
+      travel_hours_per_person: "0",
+      total_hours: 0.7,
+      cost_total: 52,
+      note: undefined,
+    })),
+    subcontracts: source.subcontracts.map((line) => ({
+      ...line,
+      description: "Preparação mecânica",
+      quantity: 0,
+      unit: "un.",
+      unit_price: "52",
+      total_amount: 0,
+      note: null,
+    })),
+    equipment: source.equipment.map((line) => ({
+      ...line,
+      description: "Viatura / equipamento",
+      quantity: "0",
+      unit: "un.",
+      unit_price: 10.69,
+      total_amount: 0,
+      note: undefined,
+    })),
+    surcharges: source.surcharges.map((line) => ({
+      ...line,
+      name: "Acréscimo operacional",
+      rate: 0.1069,
+      base_amount: 10.69,
+      amount: 1.142761,
+    })),
+  };
+}
+
 async function logoBytes(): Promise<Uint8Array> {
   return new Uint8Array(
     await readFile(
@@ -240,13 +325,78 @@ describe("PDF interno e PDF cliente do orçamento", () => {
 
   it("usa formatação CHF suíça e nomes de ficheiro seguros", () => {
     expect(formatSwissAmount("2452")).toBe("2'452.00");
+    expect(formatSwissAmount(2452)).toBe("2'452.00");
     expect(formatSwissAmount("-2452.5")).toBe("-2'452.50");
+    expect(formatSwissAmount(null)).toBe("0.00");
+    expect(formatSwissAmount(undefined)).toBe("0.00");
+    expect(formatSwissAmount("")).toBe("0.00");
     expect(internalQuotePdfFilename("CP-2026-0001")).toBe(
       "CP-Peixoto_Intern_CP-2026-0001.pdf",
     );
     expect(clientQuotePdfFilename("CP-2026-0001", "José Müller & Filhos")).toBe(
       "CP_Peixoto_Offerte_2026-0001_Jose-Muller-Filhos.pdf",
     );
+  });
+
+  it("normaliza texto e constrói ambos os PDFs com numerics materializados como numbers", async () => {
+    expect(asText("0.7")).toBe("0.7");
+    expect(asText(0.7)).toBe("0.7");
+    expect(asText("80")).toBe("80");
+    expect(asText(80)).toBe("80");
+    expect(asText(0)).toBe("0");
+    expect(asText("0")).toBe("0");
+    expect(asText(null)).toBe("");
+    expect(asText(undefined)).toBe("");
+    expect(asText("")).toBe("");
+    const textProbe = await PDFDocument.create();
+    const probeFont = await textProbe.embedFont(StandardFonts.Helvetica);
+    expect(safeFontText(0, probeFont)).toBe("0");
+    expect(safeFontText(null, probeFont)).toBe("");
+    expect(wrapPdfText(80, probeFont, 10, 100)).toEqual(["80"]);
+
+    const source = quoteFixtureWithRuntimeNumbers();
+    const internalModel = buildInternalQuotePdfModel(source);
+    expect(internalModel.identification).toContainEqual({ label: "Área", value: "80 m²" });
+    expect(internalModel.conditions).toContainEqual({ label: "Preço / hora", value: "CHF 52,00" });
+    expect(internalModel.conditions).toContainEqual({ label: "Margem desejada", value: "70,00%" });
+    expect(internalModel.conditions).toContainEqual({ label: "Desconto comercial", value: "0,00%" });
+    expect(internalModel.conditions).toContainEqual({ label: "Preço manual", value: "CHF 0,00" });
+    expect(internalModel.tables[0].rows[0]).toContain("0,70");
+    expect(internalModel.tables[0].rows[0]).toContain("CHF 52,00");
+    expect(internalModel.tables[0].rows[0]).toContain("80");
+    expect(internalModel.tables[1].rows[0]).toContain("0,70");
+    expect(internalModel.tables[2].rows[0]).toContain("0");
+    expect(internalModel.tables[3].rows[0]).toContain("0");
+    expect(JSON.stringify(internalModel)).not.toMatch(/"(?:null|undefined)"/);
+
+    const clientSource: PdfRuntimeClientSource = {
+      quote: {
+        quote_number: 80,
+        quote_date: "2026-09-24",
+        client_name_snapshot: "Musterkunde GmbH",
+        description: "Beschichtung Produktionsfläche",
+        project_location: undefined,
+        net_value: 2452,
+        client_pdf_work_description: null,
+      },
+    };
+    const clientModel = buildClientQuotePdfModel(clientSource, "Vorbereitung.\n\nBeschichtung.");
+    expect(clientModel).toMatchObject({
+      quoteNumber: "80",
+      quoteDate: "24.09.2026",
+      clientName: "Musterkunde GmbH",
+      workDescription: ["Vorbereitung.", "Beschichtung."],
+      pauschalpreis: "CHF 2'452.00",
+    });
+    expect(JSON.stringify(clientModel)).not.toMatch(/"(?:null|undefined)"/);
+
+    const logo = await logoBytes();
+    const internalBytes = await renderInternalQuotePdf(internalModel, logo);
+    const clientBytes = await renderCustomerQuotePdf(clientModel, logo);
+    await expectA4(internalBytes);
+    await expectA4(clientBytes);
+    await writeQaFixture("interno-numericos.pdf", internalBytes);
+    await writeQaFixture("cliente-numericos.pdf", clientBytes);
   });
 
   it("gera PDFs reais A4: pequeno e normal compactos; grande e notas longas em várias páginas", async () => {

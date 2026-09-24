@@ -15,6 +15,7 @@ import type {
 import {
   A4_HEIGHT,
   A4_WIDTH,
+  asText,
   embedPdfAssets,
   safeFontText,
   wrapPdfText,
@@ -42,8 +43,8 @@ type LayoutProfile = {
   sectionGap: number;
 };
 
-function fontSafe(value: string, font: PDFFont): string {
-  return safeFontText(value.replace(/\r?\n/g, " "), font);
+function fontSafe(value: unknown, font: PDFFont): string {
+  return safeFontText(asText(value).replace(/\r?\n/g, " "), font);
 }
 
 class InternalQuotePdfComposer {

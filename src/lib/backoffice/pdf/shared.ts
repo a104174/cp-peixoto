@@ -14,6 +14,14 @@ export type PdfFonts = {
   bold: PDFFont;
 };
 
+export function asText(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+  return "";
+}
+
 export async function embedPdfAssets(
   document: PDFDocument,
   logoBytes?: Uint8Array,
@@ -26,9 +34,10 @@ export async function embedPdfAssets(
   return { fonts: { regular, bold }, logo };
 }
 
-export function safeFontText(value: string, font: PDFFont): string {
+export function safeFontText(value: unknown, font: PDFFont): string {
+  const text = asText(value);
   let safe = "";
-  for (const character of value) {
+  for (const character of text) {
     try {
       font.encodeText(character);
       safe += character;
@@ -63,12 +72,12 @@ function splitLongWord(
 }
 
 export function wrapPdfText(
-  value: string,
+  value: unknown,
   font: PDFFont,
   size: number,
   maxWidth: number,
 ): string[] {
-  const safe = safeFontText(value.replace(/\s+/g, " ").trim(), font);
+  const safe = safeFontText(asText(value).replace(/\s+/g, " ").trim(), font);
   if (!safe) return [];
 
   const lines: string[] = [];
