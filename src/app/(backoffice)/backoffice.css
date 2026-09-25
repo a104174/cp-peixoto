@@ -1345,6 +1345,36 @@ textarea.bo-input {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.bo-quote-list-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.bo-quote-list-delete.bo-icon-button {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--bo-text-subtle);
+}
+.bo-quote-list-delete.bo-icon-button:hover,
+.bo-quote-list-delete.bo-icon-button:focus-visible {
+  background: var(--bo-danger-soft);
+  color: var(--bo-danger);
+}
+.bo-quote-list-delete.bo-icon-button:focus-visible {
+  outline: 3px solid rgb(157 66 61 / 22%);
+  outline-offset: 2px;
+}
+.bo-quote-list-feedback {
+  margin: 8px 12px 0;
+}
+.bo-quote-delete-feedback:focus {
+  outline: 2px solid rgb(185 145 80 / 38%);
+  outline-offset: 2px;
+}
 .bo-link-danger {
   color: var(--bo-danger);
 }
@@ -2584,6 +2614,14 @@ textarea.bo-input {
     gap: 13px;
     margin-top: 7px;
     padding-top: 10px;
+  }
+  .bo-table td[data-label="Ações"] .bo-quote-list-actions {
+    gap: 10px;
+  }
+  .bo-table td[data-label="Ações"] .bo-quote-list-delete.bo-icon-button {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
   }
   .bo-table td[data-label="Ações"]::before {
     display: none;
